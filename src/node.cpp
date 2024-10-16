@@ -25,7 +25,7 @@ void Node::end_node() {
 static bool create_log_dir() {
   std::string logdir_path(opt_string(LOGDIR));
   struct stat st;
-  if (stat(logdir_path.c_str(),&st) != 0) {
+  if (stat(logdir_path.c_str(), &st) != 0) {
     if (mkdir(logdir_path.c_str(), 0755) == -1)
       return false;
   }
@@ -34,7 +34,8 @@ static bool create_log_dir() {
 
 bool Node::createGeneralLog() {
   std::string logName;
-  logName = myParams.logdir + "/" + myParams.myName + "_ddl_step_" + std::to_string(options->at(Option::STEP)->getInt()) + ".log";
+  logName = myParams.logdir + "/" + myParams.myName + "_ddl_step_" +
+            std::to_string(options->at(Option::STEP)->getInt()) + ".log";
   bool is_success = create_log_dir();
   if (!is_success) {
     std::cerr << "Could not create log dir: " << strerror(errno) << std::endl;
@@ -169,8 +170,9 @@ void Node::tryConnect() {
     server_version = mysql_get_server_info(conn);
   }
   general_log << "- Connected server version: " << server_version << std::endl;
-  if (strcmp(PLATFORM_ID,"Darwin") == 0)
-    general_log << "- Table compression is disabled as hole punching is not supported on OSX"
+  if (strcmp(PLATFORM_ID, "Darwin") == 0)
+    general_log << "- Table compression is disabled as hole punching is not "
+                   "supported on OSX"
                 << std::endl;
   if (result != NULL) {
     mysql_free_result(result);
@@ -181,4 +183,3 @@ void Node::tryConnect() {
     exit(EXIT_SUCCESS);
   }
 }
-

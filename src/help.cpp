@@ -80,8 +80,8 @@ void add_options() {
   opt->help = "random number of different general tablespaces ";
 
   /* Number of Undo tablespaces */
-  opt =
-      newOption(Option::INT, Option::NUMBER_OF_UNDO_TABLESPACE, "undo-tbs-count");
+  opt = newOption(Option::INT, Option::NUMBER_OF_UNDO_TABLESPACE,
+                  "undo-tbs-count");
   opt->setInt("3");
   opt->help = "Number of default undo tablespaces ";
 
@@ -308,7 +308,6 @@ void add_options() {
       "none: do not use any encryption";
   opt->setString("all");
 
-
   /* MySQL server option */
   opt = newOption(Option::STRING, Option::MYSQLD_SERVER_OPTION, "mso");
   opt->help =
@@ -348,21 +347,24 @@ void add_options() {
   opt->setDDL();
 
   /* alter instance rotate innodb system key */
-  opt = newOption(Option::INT, Option::ALTER_ENCRYPTION_KEY, "rotate-encryption-key");
+  opt = newOption(Option::INT, Option::ALTER_ENCRYPTION_KEY,
+                  "rotate-encryption-key");
   opt->help = "Alter instance rotate innodb system key X";
   opt->setInt(1);
   opt->setSQL();
   opt->setDDL();
 
   /* alter instance rotate gcache master key */
-  opt = newOption(Option::INT, Option::ALTER_GCACHE_MASTER_KEY, "rotate-gcache-key");
+  opt = newOption(Option::INT, Option::ALTER_GCACHE_MASTER_KEY,
+                  "rotate-gcache-key");
   opt->help = "Alter instance rotate gcache master key";
   opt->setInt(1);
   opt->setSQL();
   opt->setDDL();
 
   /* Reload keyring component configuration */
-  opt = newOption(Option::INT, Option::ALTER_INSTANCE_RELOAD_KEYRING, "reload-keyring");
+  opt = newOption(Option::INT, Option::ALTER_INSTANCE_RELOAD_KEYRING,
+                  "reload-keyring");
   opt->help = "Alter instance reload keyring";
   opt->setInt(1);
   opt->setSQL();
@@ -386,7 +388,7 @@ void add_options() {
 
   /*Discard tablespace */
   opt = newOption(Option::INT, Option::ALTER_DISCARD_TABLESPACE,
-		  "alt-discard-tbs");
+                  "alt-discard-tbs");
   opt->help = "Alter table to discard file-per-tablespace";
   opt->setInt(1);
   opt->setSQL();
@@ -832,125 +834,123 @@ void show_help(std::string help) {
     std::cout << "Not a valid option! " << help << std::endl;
 }
 
-  void show_help() {
-    print_version();
-    std::cout << " - For complete help use => pstress  --help --verbose"
-              << std::endl;
-    std::cout << " - For help on any option => pstress --help=OPTION e.g. \n "
-                 "            pstress --help=ddl"
-              << std::endl;
-  }
+void show_help() {
+  print_version();
+  std::cout << " - For complete help use => pstress  --help --verbose"
+            << std::endl;
+  std::cout << " - For help on any option => pstress --help=OPTION e.g. \n "
+               "            pstress --help=ddl"
+            << std::endl;
+}
 
-  void show_cli_help(void) {
-    print_version();
-    std::cout << " - General usage: pstress --user=USER --password=PASSWORD "
-                 "--database=DATABASE"
-              << std::endl;
-    std::cout << "=> pstress doesn't support multiple nodes when using "
-                 "commandline options mode!"
-              << std::endl;
-    std::cout
-        << "---------------------------------------------------------------"
-           "--------------------------\n"
-        << "| OPTION               | EXPLANATION                           "
-           "       | DEFAULT         |\n"
-        << "---------------------------------------------------------------"
-           "--------------------------\n"
-        << "--database             | The database to connect to            "
-           "       | \n"
-        << "--address              | IP address to connect to              "
-           "       | \n"
-        << "--port                 | The port to connect to                "
-           "       | 3306\n"
-        << "--infile               | The SQL input file                    "
-           "       | pquery.sql\n"
-        << "--logdir               | Log directory                         "
-           "       | /tmp\n"
-        << "--socket               | Socket file to use                    "
-           "       | /tmp/my.sock\n"
-        << "--user                 | The MySQL userID to be used           "
-           "       | shell user\n"
-        << "--password             | The MySQL user's password             "
-           "       | <empty>\n"
-        << "--threads              | The number of threads to use          "
-           "       | 1\n"
-        << "--queries-per-thread   | The number of queries per thread      "
-           "       | 10000\n"
-        << "--verbose              | Duplicates the log to console when "
-           "threads=1 | no\n"
-        << "--log-all-queries      | Log all queries (succeeded and "
-           "failed)       | no\n"
-        << "--log-succeeded-queries| Log succeeded queries                 "
-           "       | no\n"
-        << "--log-failed-queries   | Log failed queries                    "
-           "       | no\n"
-        << "--no-shuffle           | Execute SQL sequentially              "
-           "       | randomly\n"
-        << "--test-connection      | Test connection to server and exit    "
-           "       | no\n"
-        << "--log-query-number     | Write query # to logs                 "
-           "       | no\n"
-        << "--log-client-output    | Log query output to separate file     "
-           "       | no\n"
-        << "--ddl		    | USE DDL in command line option           "
-           "    | true\n"
-        << "---------------------------------------------------------------"
-           "--------------------------"
-        << std::endl;
-  }
+void show_cli_help(void) {
+  print_version();
+  std::cout << " - General usage: pstress --user=USER --password=PASSWORD "
+               "--database=DATABASE"
+            << std::endl;
+  std::cout << "=> pstress doesn't support multiple nodes when using "
+               "commandline options mode!"
+            << std::endl;
+  std::cout << "---------------------------------------------------------------"
+               "--------------------------\n"
+            << "| OPTION               | EXPLANATION                           "
+               "       | DEFAULT         |\n"
+            << "---------------------------------------------------------------"
+               "--------------------------\n"
+            << "--database             | The database to connect to            "
+               "       | \n"
+            << "--address              | IP address to connect to              "
+               "       | \n"
+            << "--port                 | The port to connect to                "
+               "       | 3306\n"
+            << "--infile               | The SQL input file                    "
+               "       | pquery.sql\n"
+            << "--logdir               | Log directory                         "
+               "       | /tmp\n"
+            << "--socket               | Socket file to use                    "
+               "       | /tmp/my.sock\n"
+            << "--user                 | The MySQL userID to be used           "
+               "       | shell user\n"
+            << "--password             | The MySQL user's password             "
+               "       | <empty>\n"
+            << "--threads              | The number of threads to use          "
+               "       | 1\n"
+            << "--queries-per-thread   | The number of queries per thread      "
+               "       | 10000\n"
+            << "--verbose              | Duplicates the log to console when "
+               "threads=1 | no\n"
+            << "--log-all-queries      | Log all queries (succeeded and "
+               "failed)       | no\n"
+            << "--log-succeeded-queries| Log succeeded queries                 "
+               "       | no\n"
+            << "--log-failed-queries   | Log failed queries                    "
+               "       | no\n"
+            << "--no-shuffle           | Execute SQL sequentially              "
+               "       | randomly\n"
+            << "--test-connection      | Test connection to server and exit    "
+               "       | no\n"
+            << "--log-query-number     | Write query # to logs                 "
+               "       | no\n"
+            << "--log-client-output    | Log query output to separate file     "
+               "       | no\n"
+            << "--ddl		    | USE DDL in command line option           "
+               "    | true\n"
+            << "---------------------------------------------------------------"
+               "--------------------------"
+            << std::endl;
+}
 
-  void show_config_help(void) {
+void show_config_help(void) {
 
-    print_version();
+  print_version();
 
-    std::cout << " - Usage: pstress --config-file=pstress.cfg" << std::endl;
-    std::cout << " - CLI params has been replaced by config file (INI format)"
-              << std::endl;
-    std::cout << " - You can redefine any global param=value pair in "
-                 "host-specific section"
-              << std::endl;
-    std::cout << "\nConfig example:\n" << std::endl;
-    std::cout
-        <<
+  std::cout << " - Usage: pstress --config-file=pstress.cfg" << std::endl;
+  std::cout << " - CLI params has been replaced by config file (INI format)"
+            << std::endl;
+  std::cout << " - You can redefine any global param=value pair in "
+               "host-specific section"
+            << std::endl;
+  std::cout << "\nConfig example:\n" << std::endl;
+  std::cout <<
 
-        "[node0.domain.tld]\n"
-        << "# The database to connect to\n"
-        << "database = \n"
-        << "# IP address to connect to, default is AF_UNIX\n"
-        << "address = <empty>\n"
-        << "# The port to connect to\n"
-        << "port = 3306\n"
-        << "# The SQL input file\n"
-        << "infile = pquery.sql\n"
-        << "# Directory to store logs\n"
-        << "logdir = /tmp\n"
-        << "# Socket file to use\n"
-        << "socket = /tmp/my.sock\n"
-        << "# The MySQL userID to be used\n"
-        << "user = test\n"
-        << "# The MySQL user's password\n"
-        << "password = test\n"
-        << "# The number of threads to use by worker\n"
-        << "threads = 1\n"
-        << "# The number of queries per thread\n"
-           "queries-per-thread = 10000\n"
-        << "# Duplicates the log to console when threads=1 and workers=1\n"
-           "verbose = No\n"
-        << "# Log all queries\n"
-        << "log-all-queries = No\n"
-        << "# Log succeeded queries\n"
-        << "log-succeeded-queries = No\n"
-        << "# Log failed queries\n"
-        << "log-failed-queries = No\n"
-        << "# Log output from executed query (separate log)\n"
-        << "log-client-output = No\n"
-        << "# Log query numbers along the query results and statistics\n"
-        << "log-query-number = No\n\n"
-        << "[node1.domain.tld]\n"
-        << "address = 10.10.6.10\n"
-        << "# default for \"run\" is No, need to set it explicitly\n"
-        << "run = Yes\n\n"
-        << "[node2.domain.tld]\n"
-        << "address = 10.10.6.11\n"
-        << std::endl;
-  }
+      "[node0.domain.tld]\n"
+            << "# The database to connect to\n"
+            << "database = \n"
+            << "# IP address to connect to, default is AF_UNIX\n"
+            << "address = <empty>\n"
+            << "# The port to connect to\n"
+            << "port = 3306\n"
+            << "# The SQL input file\n"
+            << "infile = pquery.sql\n"
+            << "# Directory to store logs\n"
+            << "logdir = /tmp\n"
+            << "# Socket file to use\n"
+            << "socket = /tmp/my.sock\n"
+            << "# The MySQL userID to be used\n"
+            << "user = test\n"
+            << "# The MySQL user's password\n"
+            << "password = test\n"
+            << "# The number of threads to use by worker\n"
+            << "threads = 1\n"
+            << "# The number of queries per thread\n"
+               "queries-per-thread = 10000\n"
+            << "# Duplicates the log to console when threads=1 and workers=1\n"
+               "verbose = No\n"
+            << "# Log all queries\n"
+            << "log-all-queries = No\n"
+            << "# Log succeeded queries\n"
+            << "log-succeeded-queries = No\n"
+            << "# Log failed queries\n"
+            << "log-failed-queries = No\n"
+            << "# Log output from executed query (separate log)\n"
+            << "log-client-output = No\n"
+            << "# Log query numbers along the query results and statistics\n"
+            << "log-query-number = No\n\n"
+            << "[node1.domain.tld]\n"
+            << "address = 10.10.6.10\n"
+            << "# default for \"run\" is No, need to set it explicitly\n"
+            << "run = Yes\n\n"
+            << "[node2.domain.tld]\n"
+            << "address = 10.10.6.11\n"
+            << std::endl;
+}

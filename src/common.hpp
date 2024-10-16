@@ -6,9 +6,9 @@
 #endif
 
 #ifdef MAXPACKET
-  #ifndef MAX_PACKET_DEFAULT
-  #define MAX_PACKET_DEFAULT 4194304
-  #endif
+#ifndef MAX_PACKET_DEFAULT
+#define MAX_PACKET_DEFAULT 4194304
+#endif
 #endif
 
 #ifndef FORK
@@ -25,11 +25,11 @@
 #define PLATFORM_ID "Linux"
 #endif
 
-#include <getopt.h>
+#include <algorithm>
 #include <atomic>
+#include <getopt.h>
 #include <map>
 #include <string>
-#include <algorithm>
 #include <vector>
 
 struct Option {
@@ -172,18 +172,10 @@ struct Option {
     }
   }
 
-  void setBool(bool in) {
-    default_bool = in;
-  }
-  void setInt(std::string n) {
-    default_int = stoi(n);
-  }
-  void setInt(int n) {
-    default_int = n;
-  }
-  void setString(std::string n) {
-    default_value = n;
-  };
+  void setBool(bool in) { default_bool = in; }
+  void setInt(std::string n) { default_int = stoi(n); }
+  void setInt(int n) { default_int = n; }
+  void setString(std::string n) { default_value = n; };
   void setSQL() { sql = true; };
   void setDDL() { ddl = true; };
   void set_cl() { cl = true; }
@@ -191,10 +183,10 @@ struct Option {
   std::string name;
   std::string help;
   std::string default_value;
-  int default_int; // if default value is integer
-  bool default_bool; // if default value is bool
-  bool sql; // true if option is SQL, False if others
-  bool ddl; // If SQL is DDL, or false if it is not
+  int default_int;                // if default value is integer
+  bool default_bool;              // if default value is bool
+  bool sql;                       // true if option is SQL, False if others
+  bool ddl;                       // If SQL is DDL, or false if it is not
   bool cl = false;                // set if it was pass trough command line
   short args = required_argument; // default is required argument
   std::atomic<unsigned long int> total_queries;   // totatl times executed

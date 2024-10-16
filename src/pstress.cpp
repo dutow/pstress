@@ -9,8 +9,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <cerrno>
 #include <algorithm>
+#include <cerrno>
 #include <cstring>
 
 #include "common.hpp"
@@ -18,10 +18,10 @@
 #include "pstress.hpp"
 #include "random_test.hpp"
 #include <INIReader.hpp>
-#include <mysql.h>
-#include <thread>
-#include <string>
 #include <libgen.h> //dirname() uses this
+#include <mysql.h>
+#include <string>
+#include <thread>
 
 /* Global variable to hold pstress build directory path */
 const char *binary_fullpath;

@@ -7,10 +7,10 @@
 #include "common.hpp"
 #include "node.hpp"
 #include <iomanip>
+#include <libgen.h>
 #include <regex>
 #include <sstream>
 #include <string>
-#include <libgen.h>
 
 #define CR_SERVER_GONE_ERROR 2006
 #define CR_SERVER_LOST 2013
@@ -181,8 +181,10 @@ int sum_of_all_options(Thd1 *thd) {
   }
 
   /* check if keyring component is installed */
-  if (mysql_read_single_value("SELECT status_value FROM performance_schema.keyring_component_status WHERE \
-      status_key='component_status'", thd) == "Active")
+  if (mysql_read_single_value(
+          "SELECT status_value FROM performance_schema.keyring_component_status WHERE \
+      status_key='component_status'",
+          thd) == "Active")
     keyring_comp_status = true;
 
   auto lock = opt_string(LOCK);
@@ -423,13 +425,14 @@ pick_algorithm_lock(std::string *const algo = nullptr,
 
   current_algo = algorithms[rand_int(algorithms.size() - 1)];
 
-/*
-  Support Matrix	LOCK=DEFAULT	LOCK=EXCLUSIVE	 LOCK=NONE      LOCK=SHARED
-  ALGORITHM=INPLACE	Supported	Supported	 Supported      Supported
-  ALGORITHM=COPY	Supported	Supported	 Not Supported  Supported
-  ALGORITHM=INSTANT	Supported	Not Supported	 Not Supported  Not Supported
-  ALGORITHM=DEFAULT	Supported	Supported        Supported      Supported
-*/
+  /*
+    Support Matrix	LOCK=DEFAULT	LOCK=EXCLUSIVE	 LOCK=NONE LOCK=SHARED
+    ALGORITHM=INPLACE	Supported	Supported	 Supported Supported
+    ALGORITHM=COPY	Supported	Supported	 Not Supported Supported
+    ALGORITHM=INSTANT	Supported	Not Supported	 Not Supported  Not
+    Supported ALGORITHM=DEFAULT	Supported	Supported        Supported
+    Supported
+  */
 
   /* If current_algo=INSTANT, we can set current_lock=DEFAULT directly as it is
    * the only supported option */
@@ -2001,7 +2004,8 @@ void Table::SetTableCompression(Thd1 *thd) {
 }
 
 void Table::SetAlterEngine(Thd1 *thd) {
-  std::string sql = "ALTER TABLE " + name_ + " ENGINE=InnoDB," + pick_algorithm_lock();
+  std::string sql =
+      "ALTER TABLE " + name_ + " ENGINE=InnoDB," + pick_algorithm_lock();
   execute_sql(sql, thd);
 }
 
@@ -2900,8 +2904,9 @@ static void create_alter_drop_undo(Thd1 *thd) {
 /* alter tablespace rename */
 void alter_tablespace_rename(Thd1 *thd) {
   if (g_tablespace.size() > 0) {
-    auto tablespace = g_tablespace[std::max(rand_int(g_tablespace.size() - 1),
-                                   1)]; // don't pick innodb_system (idx 0);
+    auto tablespace =
+        g_tablespace[std::max(rand_int(g_tablespace.size() - 1),
+                              1)]; // don't pick innodb_system (idx 0);
     std::string sql = "ALTER TABLESPACE " + tablespace;
     if (rand_int(1) == 0)
       sql += "_rename RENAME TO " + tablespace;

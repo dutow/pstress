@@ -6,20 +6,20 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
-#include <rapidjson/document.h>
-#include <rapidjson/filereadstream.h>
 #include <fstream>
 #include <iostream>
 #include <memory> //shared_ptr
 #include <mutex>
 #include <mysql.h>
-#include <rapidjson/prettywriter.h>
 #include <random>
+#include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 #include <sstream>
 #include <string.h>
 #include <unordered_set>
 #include <vector>
-#include <rapidjson/writer.h>
 #define INNODB_16K_PAGE_SIZE 16
 #define INNODB_8K_PAGE_SIZE 8
 #define INNODB_32K_PAGE_SIZE 32
@@ -164,9 +164,9 @@ struct Thd1 {
   std::atomic<unsigned long long> &performed_queries_total;
   std::atomic<unsigned long long> &failed_queries_total;
   std::shared_ptr<MYSQL_RES> result; // result set of sql
-  bool ddl_query = false;     // is the query ddl
-  bool success = false;       // if the sql is successfully executed
-  int max_con_fail_count = 0; // consecutive failed queries
+  bool ddl_query = false;            // is the query ddl
+  bool success = false;              // if the sql is successfully executed
+  int max_con_fail_count = 0;        // consecutive failed queries
   int query_number = 0;
 };
 
