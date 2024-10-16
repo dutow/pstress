@@ -7,3 +7,4 @@ Makefile
 src/pstress-*
 build/
 CMakeUserPresets.json
+.vscode
