@@ -2900,8 +2900,8 @@ static void create_alter_drop_undo(Thd1 *thd) {
 /* alter tablespace rename */
 void alter_tablespace_rename(Thd1 *thd) {
   if (g_tablespace.size() > 0) {
-    auto tablespace = g_tablespace[rand_int(g_tablespace.size() - 1),
-                                   1]; // don't pick innodb_system;
+    auto tablespace = g_tablespace[std::max(rand_int(g_tablespace.size() - 1),
+                                   1)]; // don't pick innodb_system (idx 0);
     std::string sql = "ALTER TABLESPACE " + tablespace;
     if (rand_int(1) == 0)
       sql += "_rename RENAME TO " + tablespace;
