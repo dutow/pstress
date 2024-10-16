@@ -26,7 +26,7 @@ Driver script (written in BASH which integrates the workload to perform concurre
 conan build . --build=missing --settings=build_type=<Debug/Release>
 ```
 
-4. This automatically builds all favors of `pstress`:
+4. This automatically builds all favors of `pstress`, with the following executables in the `bin` directory:
   * `pstress-ms` for MySQL
   * `pstress-ps` for Percona Server
   * `pstress-pxc` for Percona XtraDB Cluster
@@ -41,13 +41,13 @@ And then create a default conan2 profile, using `conan profile detect`
 
 After the initial build, the project can be rebuilt by either:
 
-* Executing `cmake --build --preset conan-debug` (or conan-release) in the `pstress` directory
-* Going to the build/<Debug/Release> directory, and executing `ninja` or `cmake --build .`
+* Executing `cmake --build --target install --preset conan-debug` (or conan-release) in the `pstress` directory
+* Going to the build/<Debug/Release> directory, and executing `ninja install` or `cmake --build . --target install`
 
 
 # What options does pstress accept?
 
-First, take a quick look at ``` ./pstress-ps --help, ./pstress-ps --help --verbose ``` to see available modes and options.
+First, take a quick look at ``` bin/pstress-ps --help, bin/pstress-ps --help --verbose ``` to see available modes and options.
 
 # Command line options example:
 
@@ -163,8 +163,8 @@ Option | Function | Example | Default
 
 # How to do a sample pstress run
 
-pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the src directory.
-cd pstress/src
+pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the bin directory.
+cd pstress/bin
 
 ```bash
 ./pstress-ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
