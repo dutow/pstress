@@ -108,7 +108,7 @@ kill_server(){
 # Start vault server
 start_vault_server(){
   echoit "Setting up vault server"
-  mkdir ${WORKDIR}/vault
+  mkdir -p ${WORKDIR}/vault
   rm -rf $WORKDIR/vault/*
   # Kill any previously running vault server
   killall vault > /dev/null 2>&1
@@ -380,7 +380,7 @@ removelasttrial(){
 
 savesql(){
   echoit "Copying sql trace(s) from ${RUNDIR}/${TRIAL} to ${WORKDIR}/${TRIAL}"
-  mkdir ${WORKDIR}/${TRIAL}
+  mkdir -p ${WORKDIR}/${TRIAL}
   cp ${RUNDIR}/${TRIAL}/*.sql ${WORKDIR}/${TRIAL}/
   rm -Rf ${RUNDIR}/${TRIAL}
   sync; sleep 0.2
@@ -518,7 +518,7 @@ pxc_startup(){
   done
 
   if [ "$IS_STARTUP" == "startup" ]; then
-    mkdir ${WORKDIR}/cert
+    mkdir -p ${WORKDIR}/cert
     cp ${WORKDIR}/node1.template/*.pem ${WORKDIR}/cert/
   fi
 
@@ -1431,7 +1431,8 @@ if [[ "${INFILE}" == *".tar."* ]]; then
   INFILE=$(echo ${INFILE} | sed 's|\.tar\..*||')
 fi
 rm -Rf ${WORKDIR} ${RUNDIR}
-mkdir ${WORKDIR} ${WORKDIR}/log ${RUNDIR}
+mkdir -p ${WORKDIR}/log 
+mkdir -p ${RUNDIR}
 WORKDIRACTIVE=1
 ONGOING=
 # User for recovery testing
@@ -1547,7 +1548,7 @@ elif [ ${COMPONENT_KEYRING_VAULT} -eq 1 ]; then
 fi
 
 echoit "Making a copy of the mysqld binary into ${WORKDIR}/mysqld (handy for coredump analysis and manually starting server)..."
-mkdir ${WORKDIR}/mysqld
+mkdir -p ${WORKDIR}/mysqld
 cp -R ${BASEDIR}/bin ${WORKDIR}/mysqld/
 echoit "Making a copy of the library files required for starting server from incident directory"
 cp -R ${BASEDIR}/lib ${WORKDIR}/mysqld/
