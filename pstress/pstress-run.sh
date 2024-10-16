@@ -1240,7 +1240,10 @@ EOF
     PQPID="$!"
     TIMEOUT_REACHED=0
     echoit "pstress running (Max duration: ${PSTRESS_RUN_TIMEOUT}s)..."
-    for X in $(seq 1 ${PSTRESS_RUN_TIMEOUT}); do
+    # TODO: HACK. Add 2 minutes extra before we kill the pstress executable
+    # Data load can take a lot of time, especially for debug sql server builds
+    PSTRESS_RUN_TIMEOUT2=$[ ${PSTRESS_RUN_TIMEOUT} + 120 ]
+    for X in $(seq 1 ${PSTRESS_RUN_TIMEOUT2}); do
       sleep 1
       if grep -qi "error while loading shared libraries" ${RUNDIR}/${TRIAL}/pstress.log; then
         if grep -qi "error while loading shared libraries.*libssl" ${RUNDIR}/${TRIAL}/pstress.log; then
@@ -1254,8 +1257,8 @@ EOF
       if [ "`ps -ef | grep ${PQPID} | grep -v grep`" == "" ]; then  # pstress ended
         break
       fi
-      if [ $X -ge ${PSTRESS_RUN_TIMEOUT} ]; then
-        echoit "${PSTRESS_RUN_TIMEOUT}s timeout reached. Terminating this trial..."
+      if [ $X -ge ${PSTRESS_RUN_TIMEOUT2} ]; then
+        echoit "${PSTRESS_RUN_TIMEOUT2}s timeout reached. Terminating this trial..."
         TIMEOUT_REACHED=1
         if [ ${TIMEOUT_INCREMENT} != 0 ]; then
           echoit "TIMEOUT_INCREMENT option was enabled and set to ${TIMEOUT_INCREMENT} sec"
