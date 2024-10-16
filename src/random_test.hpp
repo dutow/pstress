@@ -20,6 +20,9 @@
 #include <string.h>
 #include <unordered_set>
 #include <vector>
+
+#include "sql_variant/mysql.hpp"
+
 #define INNODB_16K_PAGE_SIZE 16
 #define INNODB_8K_PAGE_SIZE 8
 #define INNODB_32K_PAGE_SIZE 32
@@ -61,10 +64,10 @@ public:
   /* used to create new table/alter table add column*/
   Column(std::string name, Table *table, COLUMN_TYPES type);
 
-  Column(Table *table, COLUMN_TYPES type) : type_(type), table_(table){};
+  Column(Table *table, COLUMN_TYPES type) : type_(type), table_(table) {};
 
   Column(std::string name, std::string type, Table *table)
-      : type_(col_type(type)), name_(name), table_(table){};
+      : type_(col_type(type)), name_(name), table_(table) {};
 
   std::string definition();
   /* return random value of that column */
@@ -85,7 +88,7 @@ private:
   };
 
 public:
-  virtual ~Column(){};
+  virtual ~Column() {};
   std::string name_;
   std::mutex mutex;
   bool null = false;
@@ -120,7 +123,7 @@ struct Generated_Column : public Column {
   std::string str;
   std::string clause() { return str; };
   std::string rand_value();
-  ~Generated_Column(){};
+  ~Generated_Column() {};
   COLUMN_TYPES g_type; // sub type can be blob,int, varchar
   COLUMN_TYPES generate_type() { return g_type; };
 };
@@ -147,10 +150,10 @@ struct Index {
 
 struct Thd1 {
   Thd1(int id, std::ofstream &tl, std::ofstream &ddl_l, std::ofstream &client_l,
-       MYSQL *c, std::atomic<unsigned long long> &p,
+       sql_variant::MySQL &c, std::atomic<unsigned long long> &p,
        std::atomic<unsigned long long> &f)
       : thread_id(id), thread_log(tl), ddl_logs(ddl_l), client_log(client_l),
-        conn(c), performed_queries_total(p), failed_queries_total(f){};
+        conn(c), performed_queries_total(p), failed_queries_total(f) {};
 
   bool run_some_query(); // create default tables and run random queries
   bool load_metadata();  // load metada of tool in memory
@@ -160,13 +163,12 @@ struct Thd1 {
   std::ofstream &thread_log;
   std::ofstream &ddl_logs;
   std::ofstream &client_log;
-  MYSQL *conn;
+  sql_variant::MySQL &conn;
   std::atomic<unsigned long long> &performed_queries_total;
   std::atomic<unsigned long long> &failed_queries_total;
-  std::shared_ptr<MYSQL_RES> result; // result set of sql
-  bool ddl_query = false;            // is the query ddl
-  bool success = false;              // if the sql is successfully executed
-  int max_con_fail_count = 0;        // consecutive failed queries
+  bool ddl_query = false;     // is the query ddl
+  bool success = false;       // if the sql is successfully executed
+  int max_con_fail_count = 0; // consecutive failed queries
   int query_number = 0;
 };
 
@@ -296,7 +298,7 @@ public:
 
   /* Used by Range Parititon */
   struct Range {
-    Range(std::string n, int r) : name(n), range(r){};
+    Range(std::string n, int r) : name(n), range(r) {};
     std::string name;
     int range;
   };
@@ -305,7 +307,7 @@ public:
 
   /* Used by List Partition */
   struct List {
-    List(std::string n) : name(n){};
+    List(std::string n) : name(n) {};
     std::string name;
     std::vector<int> list;
   };
@@ -316,8 +318,8 @@ public:
 /* Temporary table */
 struct Temporary_table : public Table {
 public:
-  Temporary_table(std::string n) : Table(n){};
-  Temporary_table(const Temporary_table &table) : Table(table.name_){};
+  Temporary_table(std::string n) : Table(n) {};
+  Temporary_table(const Temporary_table &table) : Table(table.name_) {};
 };
 
 int set_seed(Thd1 *thd);
@@ -332,7 +334,7 @@ int save_dictionary(std::vector<Table *> *all_tables);
 param[in] sql	 	query that we want to execute
 param[in/out] thd	Thd used to execute sql
 */
-bool execute_sql(const std::string &sql, Thd1 *thd);
+sql_variant::QueryResult execute_sql(const std::string &sql, Thd1 *thd);
 
 void save_metadata_to_file();
 void clean_up_at_end();

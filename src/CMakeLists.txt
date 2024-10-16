@@ -5,10 +5,12 @@ SET(PSTRESS_SOURCES
   node.cpp
   thread.cpp
   random_test.cpp
+  sql_variant/mysql.cpp
 )
 
 FUNCTION(add_pstress_favor NAME EXT)
   ADD_EXECUTABLE(pstress-${EXT} ${PSTRESS_SOURCES})
+  TARGET_INCLUDE_DIRECTORIES(pstress-${EXT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   INSTALL(TARGETS pstress-${EXT} DESTINATION bin)
   TARGET_LINK_LIBRARIES(pstress-${EXT} libmysqlclient::libmysqlclient)
   TARGET_LINK_LIBRARIES(pstress-${EXT} inih++ rapidjson)

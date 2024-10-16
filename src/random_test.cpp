@@ -6,6 +6,8 @@
 #include "random_test.hpp"
 #include "common.hpp"
 #include "node.hpp"
+#include "sql_variant/mysql.hpp"
+
 #include <iomanip>
 #include <libgen.h>
 #include <regex>
@@ -42,8 +44,8 @@ static int g_max_columns_length = 30;
 static int g_innodb_page_size;
 static int sum_of_all_opts = 0; // sum of all probablility
 std::mutex ddl_logs_write;
-static std::chrono::system_clock::time_point start_time =
-    std::chrono::system_clock::now();
+static std::chrono::high_resolution_clock::time_point start_time =
+    std::chrono::high_resolution_clock::now();
 
 std::atomic<size_t> table_started(0);
 std::atomic<size_t> check_failures(0);
@@ -54,36 +56,22 @@ std::atomic<bool> run_query_failed(false);
 std::vector<Partition::PART_TYPE> Partition::supported;
 const int maximum_records_in_each_parititon_list = 100;
 
-static MYSQL_ROW mysql_fetch_row_safe(Thd1 *thd) {
-  if (!thd->result) {
-    thd->thread_log << "mysql_fetch_row called with nullptr arg!";
-    return nullptr;
-  }
-  return mysql_fetch_row(thd->result.get());
-}
-
-static bool mysql_num_fields_safe(Thd1 *thd, unsigned int req) {
-  if (!thd->result) {
-    thd->thread_log << "mysql_num_fields called with nullptr arg!";
-    return 0;
-  }
-  auto num_fields = mysql_num_fields(thd->result.get());
-  auto ret = req <= num_fields;
-  if (!ret) {
-    thd->thread_log << "Expected at least " << req << " fields but only "
-                    << num_fields << " exist";
-  }
-  return ret;
-}
-
 /* run check table */
 static bool get_check_result(const std::string &sql, Thd1 *thd) {
 
-  execute_sql(sql, thd);
-  auto row = mysql_fetch_row_safe(thd);
-  if (row && mysql_num_fields_safe(thd, 4) && strcmp(row[3], "OK") != 0) {
-    thd->thread_log << "Error: " << row[0] << " " << row[1] << " " << row[2]
-                    << " " << row[3] << std::endl;
+  const auto res = execute_sql(sql, thd);
+  if (!res.success() || res.data == nullptr || res.data->numFields() < 4 ||
+      res.data->numRows() < 1) {
+    thd->thread_log << "Error: " << res.errorInfo.errorMessage << std::endl;
+    return false;
+  }
+
+  const auto row = res.data->nextRow();
+  if (row.rowData[3] != "OK") {
+    thd->thread_log << "Error: " << row.rowData[0].value_or("") << " "
+                    << row.rowData[1].value_or("") << " "
+                    << row.rowData[2].value_or("") << " "
+                    << row.rowData[3].value_or("") << std::endl;
     return false;
   }
 
@@ -91,14 +79,17 @@ static bool get_check_result(const std::string &sql, Thd1 *thd) {
 }
 
 static std::string mysql_read_single_value(const std::string &sql, Thd1 *thd) {
-  std::string query_result = "";
 
-  execute_sql(sql, thd);
-  auto row = mysql_fetch_row_safe(thd);
-  if (row && mysql_num_fields_safe(thd, 1))
-    query_result = row[0];
+  const auto res = execute_sql(sql, thd);
 
-  return query_result;
+  if (!res.success() || res.data == nullptr || res.data->numFields() < 1 ||
+      res.data->numRows() < 1) {
+    return "";
+  }
+
+  const auto row = res.data->nextRow();
+
+  return std::string(row.rowData[0].value_or(""));
 }
 
 /* return server version in number format
@@ -1065,7 +1056,7 @@ std::string Index::definition() {
 
 bool Table::load(Thd1 *thd) {
   thd->ddl_query = true;
-  if (!execute_sql(definition(false), thd)) {
+  if (!execute_sql(definition(false), thd).success()) {
     thd->thread_log << "Failed to create table " << name_ << std::endl;
     run_query_failed = true;
     return false;
@@ -1111,7 +1102,7 @@ bool Table::load_secondary_indexes(Thd1 *thd) {
     if (id == indexes_->at(auto_inc_index))
       continue;
     std::string sql = "ALTER TABLE " + name_ + " ADD " + id->definition();
-    if (!execute_sql(sql, thd)) {
+    if (!execute_sql(sql, thd).success()) {
       thd->thread_log << "Failed to add index " << id->name_ << " on " << name_
                       << std::endl;
       run_query_failed = true;
@@ -1183,7 +1174,7 @@ Partition::Partition(std::string n) : Table(n) {
 void Table::DropCreate(Thd1 *thd) {
   execute_sql("DROP TABLE " + name_, thd);
   std::string def = definition();
-  if (!execute_sql(def, thd) && tablespace.size() > 0) {
+  if (!execute_sql(def, thd).success() && tablespace.size() > 0) {
     std::string tbs = " TABLESPACE=" + tablespace + "_rename";
 
     auto no_encryption = opt_bool(NO_ENCRYPTION);
@@ -1191,7 +1182,7 @@ void Table::DropCreate(Thd1 *thd) {
     std::string encrypt_sql = " ENCRYPTION = " + encryption;
 
     /* If tablespace is rename or encrypted, or tablespace rename/encrypted */
-    if (!execute_sql(def + tbs, thd))
+    if (!execute_sql(def + tbs, thd).success())
       if (!no_encryption && (execute_sql(def + encrypt_sql, thd) ||
                              execute_sql(def + encrypt_sql + tbs, thd))) {
         table_mutex.lock();
@@ -1281,7 +1272,8 @@ void Partition::AddDrop(Thd1 *thd) {
     if (rand_int(1) == 0) {
       if (execute_sql("ALTER TABLE " + name_ + " ADD PARTITION PARTITIONS " +
                           std::to_string(new_partition),
-                      thd)) {
+                      thd)
+              .success()) {
         table_mutex.lock();
         number_of_part += new_partition;
         table_mutex.unlock();
@@ -1290,7 +1282,8 @@ void Partition::AddDrop(Thd1 *thd) {
       if (execute_sql("ALTER TABLE " + name_ + pick_algorithm_lock() +
                           ", COALESCE PARTITION " +
                           std::to_string(new_partition),
-                      thd)) {
+                      thd)
+              .success()) {
         table_mutex.lock();
         number_of_part -= new_partition;
         table_mutex.unlock();
@@ -1306,7 +1299,8 @@ void Partition::AddDrop(Thd1 *thd) {
         table_mutex.unlock();
         if (execute_sql("ALTER TABLE " + name_ + pick_algorithm_lock() +
                             ", DROP PARTITION " + part_name,
-                        thd)) {
+                        thd)
+                .success()) {
           table_mutex.lock();
           number_of_part--;
           for (auto i = positions.begin(); i != positions.end(); i++) {
@@ -1352,7 +1346,7 @@ void Partition::AddDrop(Thd1 *thd) {
                           std::to_string(second) + "))";
         table_mutex.unlock();
 
-        if (execute_sql(sql, thd)) {
+        if (execute_sql(sql, thd).success()) {
           table_mutex.lock();
           for (auto i = positions.begin(); i != positions.end(); i++) {
             if (i->name.compare(par_name) == 0) {
@@ -1381,7 +1375,8 @@ void Partition::AddDrop(Thd1 *thd) {
       table_mutex.unlock();
       if (execute_sql("ALTER TABLE " + name_ + pick_algorithm_lock() +
                           ", DROP PARTITION " + part_name,
-                      thd)) {
+                      thd)
+              .success()) {
         table_mutex.lock();
         number_of_part--;
         for (auto i = lists.begin(); i != lists.end(); i++) {
@@ -1430,7 +1425,7 @@ void Partition::AddDrop(Thd1 *thd) {
             sql += ",";
         }
         sql += "))";
-        if (execute_sql(sql, thd)) {
+        if (execute_sql(sql, thd).success()) {
           table_mutex.lock();
           number_of_part++;
           lists.emplace_back(new_part_name);
@@ -1876,74 +1871,61 @@ void generate_metadata_for_tables() {
   }
 }
 
-bool execute_sql(const std::string &sql, Thd1 *thd) {
-  auto query = sql.c_str();
+sql_variant::QueryResult execute_sql(const std::string &sql, Thd1 *thd) {
   static auto log_all = opt_bool(LOG_ALL_QUERIES);
   static auto log_failed = opt_bool(LOG_FAILED_QUERIES);
   static auto log_success = opt_bool(LOG_SUCCEDED_QUERIES);
   static auto log_query_duration = opt_bool(LOG_QUERY_DURATION);
   static auto log_client_output = opt_bool(LOG_CLIENT_OUTPUT);
   static auto log_query_numbers = opt_bool(LOG_QUERY_NUMBERS);
-  std::chrono::system_clock::time_point begin, end;
+
+  auto queryStatus = thd->conn.executeQuery(sql);
 
   if (log_query_duration) {
-    begin = std::chrono::system_clock::now();
-  }
-
-  auto res = mysql_real_query(thd->conn, query, strlen(query));
-
-  if (log_query_duration) {
-    end = std::chrono::system_clock::now();
-
     /* elpased time in micro-seconds */
     auto te_start = std::chrono::duration_cast<std::chrono::microseconds>(
-        begin - start_time);
-    auto te_query =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
-    auto in_time_t = std::chrono::system_clock::to_time_t(begin);
+        queryStatus.executedAt - start_time);
+    auto in_time_t =
+        std::chrono::system_clock::to_time_t(queryStatus.executedAt);
 
     std::stringstream ss;
     ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%dT%X");
 
     thd->thread_log << ss.str() << " " << te_start.count() << "=>"
-                    << te_query.count() << "ms ";
+                    << queryStatus.executionTime.count() << "ms ";
   }
   thd->performed_queries_total++;
 
-  if (res == 1) { // query failed
+  if (!queryStatus.success()) { // query failed
     thd->failed_queries_total++;
     thd->max_con_fail_count++;
     if (log_all || log_failed) {
       thd->thread_log << " F " << sql << std::endl;
-      thd->thread_log << "Error " << mysql_error(thd->conn) << std::endl;
+      thd->thread_log << "Error " << queryStatus.errorInfo.errorCode
+                      << std::endl;
     }
-    if (mysql_errno(thd->conn) == CR_SERVER_GONE_ERROR ||
-        mysql_errno(thd->conn) == CR_SERVER_LOST) {
+    if (queryStatus.errorInfo.serverGone()) {
       thd->thread_log << "server gone, while processing " + sql;
       run_query_failed = true;
     }
   } else {
     thd->max_con_fail_count = 0;
     thd->success = true;
-    auto result = mysql_store_result(thd->conn);
-    thd->result = std::shared_ptr<MYSQL_RES>(result, [](MYSQL_RES *r) {
-      if (r)
-        mysql_free_result(r);
-    });
 
     if (log_client_output) {
-      if (thd->result != nullptr) {
-        unsigned int i, num_fields;
+      if (queryStatus.data != nullptr) {
+        const auto num_fields = queryStatus.data->numFields();
+        const auto num_rows = queryStatus.data->numRows();
 
-        num_fields = mysql_num_fields(thd->result.get());
-        while (auto row = mysql_fetch_row_safe(thd)) {
-          for (i = 0; i < num_fields; i++) {
-            if (row[i]) {
-              if (strlen(row[i]) == 0) {
+        for (std::size_t irow = 0; irow < num_rows; irow++) {
+          const auto row = queryStatus.data->nextRow();
+          for (std::size_t ifield = 0; ifield < num_fields; ifield++) {
+            if (row.rowData[ifield]) {
+              if (row.rowData[ifield]->empty()) {
                 thd->client_log << "EMPTY"
                                 << "#";
               } else {
-                thd->client_log << row[i] << "#";
+                thd->client_log << row.rowData[ifield].value() << "#";
               }
             } else {
               thd->client_log << "#NO DATA"
@@ -1961,23 +1943,18 @@ bool execute_sql(const std::string &sql, Thd1 *thd) {
     /* log successful query */
     if (log_all || log_success) {
       thd->thread_log << " S " << sql;
-      int number;
-      if (thd->result == nullptr)
-        number = mysql_affected_rows(thd->conn);
-      else
-        number = mysql_num_rows(thd->result.get());
-      thd->thread_log << " rows:" << number << std::endl;
+      thd->thread_log << " rows:" << queryStatus.affectedRows << std::endl;
     }
   }
 
   if (thd->ddl_query) {
     ddl_logs_write.lock();
     thd->ddl_logs << thd->thread_id << " " << sql << " "
-                  << mysql_error(thd->conn) << std::endl;
+                  << queryStatus.errorInfo.errorCode << std::endl;
     ddl_logs_write.unlock();
   }
 
-  return (res == 0 ? 1 : 0);
+  return queryStatus;
 }
 
 void Table::SetEncryption(Thd1 *thd) {
@@ -2222,7 +2199,7 @@ void Table::AddColumn(Thd1 *thd) {
 
   table_mutex.unlock();
 
-  if (execute_sql(sql, thd)) {
+  if (execute_sql(sql, thd).success()) {
     table_mutex.lock();
     auto add_new_column =
         true; // check if there is already a column with this name
@@ -2250,7 +2227,7 @@ void Table::DropIndex(Thd1 *thd) {
     std::string sql = "ALTER TABLE " + name_ + " DROP INDEX " + name + ",";
     sql += pick_algorithm_lock();
     table_mutex.unlock();
-    if (execute_sql(sql, thd)) {
+    if (execute_sql(sql, thd).success()) {
       table_mutex.lock();
       for (size_t i = 0; i < indexes_->size(); i++) {
         auto ix = indexes_->at(i);
@@ -2312,7 +2289,7 @@ void Table::AddIndex(Thd1 *thd) {
   sql += pick_algorithm_lock();
   table_mutex.unlock();
 
-  if (execute_sql(sql, thd)) {
+  if (execute_sql(sql, thd).success()) {
     table_mutex.lock();
     auto do_not_add = false; // check if there is already a index with this name
     for (auto ind : *indexes_) {
@@ -2419,7 +2396,7 @@ void Table::IndexRename(Thd1 *thd) {
                       " To " + new_name + ",";
     sql += pick_algorithm_lock();
     table_mutex.unlock();
-    if (execute_sql(sql, thd)) {
+    if (execute_sql(sql, thd).success()) {
       table_mutex.lock();
       for (auto &ind : *indexes_) {
         if (ind->name_.compare(name) == 0)
@@ -2445,7 +2422,7 @@ void Table::ColumnRename(Thd1 *thd) {
                     new_name + ",";
   sql += pick_algorithm_lock();
   table_mutex.unlock();
-  if (execute_sql(sql, thd)) {
+  if (execute_sql(sql, thd).success()) {
     table_mutex.lock();
     for (auto &col : *columns_) {
       if (col->name_.compare(name) == 0)
@@ -2951,7 +2928,7 @@ static void grammar_sql(std::vector<Table *> *all_tables, Thd1 *thd) {
 
   struct table {
     table(std::string n, std::vector<std::string> i, std::vector<std::string> v)
-        : name(n), int_col(i), varchar_col(v){};
+        : name(n), int_col(i), varchar_col(v) {};
     std::string name;
     std::vector<std::string> int_col;
     std::vector<std::string> varchar_col;

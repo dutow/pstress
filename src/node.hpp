@@ -36,8 +36,8 @@ struct workerParams {
   std::string password;
   std::string infile;
   std::string logdir;
-  short port;
-  short threads;
+  unsigned short port;
+  unsigned short threads;
   unsigned long queries_per_thread;
   unsigned long maxpacket;
 };

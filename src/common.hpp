@@ -6,7 +6,7 @@
 #endif
 
 #ifndef MAX_PACKET_DEFAULT
-#define MAX_PACKET_DEFAULT 4194304
+#define MAX_PACKET_DEFAULT 67108864
 #endif
 
 #ifndef FORK
@@ -146,7 +146,7 @@ struct Option {
   } option;
   Option(Type t, Opt o, std::string n)
       : type(t), option(o), name(n), sql(false), ddl(false), total_queries(0),
-        success_queries(0){};
+        success_queries(0) {};
   ~Option();
 
   void print_pretty();
@@ -192,7 +192,7 @@ struct Option {
 };
 
 struct Server_Option { // Server_options
-  Server_Option(std::string n) : name(n){};
+  Server_Option(std::string n) : name(n) {};
   int prob;
   std::string name;
   std::vector<std::string> values;
