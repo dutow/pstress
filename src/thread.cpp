@@ -67,11 +67,9 @@ void Node::workerThread(int number) {
                 << std::endl;
     return;
   }
-#ifdef MAXPACKET
   if (myParams.maxpacket != MAX_PACKET_DEFAULT) {
     mysql_options(conn, MYSQL_OPT_MAX_ALLOWED_PACKET, &myParams.maxpacket);
   }
-#endif
   if (mysql_real_connect(conn, myParams.address.c_str(),
                          myParams.username.c_str(), myParams.password.c_str(),
                          myParams.database.c_str(), myParams.port,
@@ -121,7 +119,6 @@ void Node::workerThread(int number) {
         }
       }
     }
-
   } else {
     std::random_device rd;
     std::mt19937 gen(rd());

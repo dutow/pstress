@@ -39,10 +39,8 @@ void read_section_settings(struct workerParams *wParams, std::string secName,
   wParams->threads = reader.GetInteger(secName, "threads", 10);
   wParams->queries_per_thread =
       reader.GetInteger(secName, "queries-per-thread", 10000);
-#ifdef MAXPACKET
   wParams->maxpacket =
       reader.GetInteger(secName, "max-packet-size", MAX_PACKET_DEFAULT);
-#endif
   wParams->infile = reader.Get(secName, "infile", "pquery.sql");
   wParams->logdir = reader.Get(secName, "logdir", "/tmp");
 }

@@ -5,10 +5,8 @@
 #define PQVERSION "1"
 #endif
 
-#ifdef MAXPACKET
 #ifndef MAX_PACKET_DEFAULT
 #define MAX_PACKET_DEFAULT 4194304
-#endif
 #endif
 
 #ifndef FORK
