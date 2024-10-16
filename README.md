@@ -18,26 +18,33 @@ Driver script (written in BASH which integrates the workload to perform concurre
 
 # How to build pstress ?
 
-1. Install cmake >= 2.6 and C++ compiler >= 4.7 (gcc-c++ for RedHat-based, g++ for Debian-based), the development files for your MySQL version/fork, and potentially OpenSSL and AIO development files and/or other deps if needed.
-2. Change dir to pstress
-3. Run cmake with the required options, which are:
-   *  *-DPERCONASERVER*=**ON** - build pstress with Percona Server
-   *  *-DMYSQL*=**ON** - build pstress with MySQL Server
-   *  *-DPERCONACLUSTER*=**ON** - build pstress with Percona XtraDB Cluster
-4. If you have MySQL | Percona Server | Percona XtraDB Cluster installed to some custom location you may consider setting the additional flags to cmake: *MYSQL_INCLUDE_DIR* and *MYSQL_LIBRARY*. OR, you can set *BASEDIR* variable if you have binary tarball extracted to some custom place for fully automatic library detection (recommended).
-5. The resulting binary will automatically receive an appropriate flavor suffix:
-  * *pstress-ms* for MySQL
-  * *pstress-ps* for Percona Server
-  * *pstress-pxc* for Percona XtraDB Cluster
+1. Install and setup `conan2` and a recent C++ compiler with C++17 support
+2. Download/checkout pstress and change the working directory to it
+3. Run Conan to build the dependencies and pstress:
 
-# Can you give an easy build example using an extracted Percona Server tarball?
 ```
-$ cd pstress
-$ git clean -fd; rm CMakeCache.txt;
-$ cmake . -DPERCONASERVER=ON -DBASEDIR=$HOME/mysql-8.0/bld/install
-$ sudo make install # If you want pstress to be installed on the system, otherwise the binary can be found in ./src
-$ ... build your other MySQL flavors/forks here in the same way, modifying the basedir and the servertype (both -D options) ...
+conan build . --build=missing --settings=build_type=<Debug/Release>
 ```
+
+4. This automatically builds all favors of `pstress`:
+  * `pstress-ms` for MySQL
+  * `pstress-ps` for Percona Server
+  * `pstress-pxc` for Percona XtraDB Cluster
+
+## Initial `conan2` setup
+
+To use conan2, first install it using the instructions at https://docs.conan.io/2/installation.html
+
+And then create a default conan2 profile, using `conan profile detect`
+
+# How to rebuild/test (for developers)
+
+After the initial build, the project can be rebuilt by either:
+
+* Executing `cmake --build --preset conan-debug` (or conan-release) in the `pstress` directory
+* Going to the build/<Debug/Release> directory, and executing `ninja` or `cmake --build .`
+
+
 # What options does pstress accept?
 
 First, take a quick look at ``` ./pstress-ps --help, ./pstress-ps --help --verbose ``` to see available modes and options.

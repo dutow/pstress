@@ -5,3 +5,5 @@ CMakeFiles
 Makefile
 *.a
 src/pstress-*
+build/
+CMakeUserPresets.json
