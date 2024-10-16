@@ -24,7 +24,8 @@ ASSERTION_FLAG=0;
 ERROR_FLAG=0;
 SEARCH_ERROR_PATTERN="\[ERROR\].*"
 SEARCH_ASSERT_PATTERN="Assertion failure:|Failing assertion:|Assertion.*failed|mysqld got signal 11";
-SEARCH_FILE=exclude_patterns.txt
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SEARCH_FILE="$SCRIPT_DIR/exclude_patterns.txt"
 
 # Search assertion string in Error log
 PATTERN=$(egrep "$SEARCH_ASSERT_PATTERN" $ERROR_LOG |
