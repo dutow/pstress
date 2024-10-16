@@ -49,6 +49,25 @@ After the initial build, the project can be rebuilt by either:
 
 First, take a quick look at ``` bin/pstress-ps --help, bin/pstress-ps --help --verbose ``` to see available modes and options.
 
+# How to do a sample pstress run
+
+pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the bin directory.
+cd pstress/bin
+
+```bash
+./pstress-ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
+```
+
+# How to do a sample pstress run through Driver Script
+
+It can be run with the driver shell script(pstress-run.sh) and a configuration file(pstress-run.conf) located in pstress directory.
+cd pstress/pstress
+```bash
+nohup ./pstress-run.sh pstress-run.conf 2>&1 &
+```
+Check run logs through tail -f nohup.out
+
+
 # Command line options example:
 
 Option | Function | Example | Default
@@ -159,25 +178,6 @@ Option | Function | Example | Default
 --update-with-cond | Update row using where clause | --update-with-cond=500 | default#: 200
 --user | The MySQL userID to be used | | default: root
 --verbose | verbose | | default: 1
-
-
-# How to do a sample pstress run
-
-pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the bin directory.
-cd pstress/bin
-
-```bash
-./pstress-ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
-```
-
-# How to do a sample pstress run through Driver Script
-
-It can be run with the driver shell script(pstress-run.sh) and a configuration file(pstress-run.conf) located in pstress directory.
-cd pstress/pstress
-```bash
-nohup ./pstress-run.sh pstress-run.conf 2>&1 &
-```
-Check run logs through tail -f nohup.out
 
 
 # Contributors
