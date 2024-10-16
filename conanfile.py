@@ -7,6 +7,8 @@ class SimplicityRecipe(ConanFile):
 
     def requirements(self):
         self.requires("libmysqlclient/8.1.0")
+        #self.requires("inih/58") - need 59 at least, not yet released
+        self.requires("rapidjson/cci.20230929")
 
     def generate(self):
         tc = CMakeToolchain(self, generator='Ninja')

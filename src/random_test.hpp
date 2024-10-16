@@ -6,20 +6,20 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
-#include <document.h>
-#include <filereadstream.h>
+#include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
 #include <fstream>
 #include <iostream>
 #include <memory> //shared_ptr
 #include <mutex>
 #include <mysql.h>
-#include <prettywriter.h>
+#include <rapidjson/prettywriter.h>
 #include <random>
 #include <sstream>
 #include <string.h>
 #include <unordered_set>
 #include <vector>
-#include <writer.h>
+#include <rapidjson/writer.h>
 #define INNODB_16K_PAGE_SIZE 16
 #define INNODB_8K_PAGE_SIZE 8
 #define INNODB_32K_PAGE_SIZE 32

@@ -7,15 +7,11 @@ SET(PSTRESS_SOURCES
   random_test.cpp
 )
 
-ADD_SUBDIRECTORY(third_party)
-
-INCLUDE_DIRECTORIES(third_party/inih++/include third_party/rapidjson/include)
-
 FUNCTION(add_pstress_favor NAME EXT)
   ADD_EXECUTABLE(pstress-${EXT} ${PSTRESS_SOURCES})
   INSTALL(TARGETS pstress-${EXT} DESTINATION bin)
   TARGET_LINK_LIBRARIES(pstress-${EXT} libmysqlclient::libmysqlclient)
-  TARGET_LINK_LIBRARIES(pstress-${EXT} inih++)
+  TARGET_LINK_LIBRARIES(pstress-${EXT} inih++ rapidjson)
 ENDFUNCTION()
 
 add_pstress_favor("MySQL" "mds")

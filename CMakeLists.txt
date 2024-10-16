@@ -6,7 +6,11 @@ SET( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 FIND_PACKAGE(Threads REQUIRED)
 FIND_PACKAGE(libmysqlclient REQUIRED)
+FIND_PACKAGE(RapidJSON REQUIRED)
 find_package(Git)
+
+# Official release lack a required feature, keep it in 3rd party folder
+ADD_SUBDIRECTORY(src/third_party/inih++)
 
 INCLUDE(PQSetupCompiler)
 
