@@ -1,0 +1,73 @@
+name: Build PSTRESS package
+on: 
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main]
+env:
+  CC: clang
+  CXX: clang++
+      
+jobs:
+  build:
+    
+    name: PSTRESS build
+    runs-on: ubuntu-24.04
+    steps:
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-full pipx cmake ninja-build clang clang-tidy
+          pipx ensurepath
+          sudo pipx install conan
+
+      - name: Setup conan
+        run: |
+          conan profile detect
+
+      - name: Clone repository
+        uses: actions/checkout@master
+        with:
+          path: 'src/pstress'
+
+      - name: Install/build dependencies
+        run: |
+          conan install . --build=missing --settings=build_type=Debug
+        working-directory: src/pstress
+
+
+      - name: Build pstress
+        run: |
+          conan build . --settings=build_type=Debug
+        working-directory: src/pstress
+
+      - name: Create release directory
+        run: |
+          mkdir release
+          cp -r src/pstress/bin release/
+          cp -r src/pstress/pstress release/
+
+      - name: Upload tgz
+        uses: actions/upload-artifact@v4
+        with:
+          name: pstress_debug
+          path: release
+
+      - name: Create tgz
+        run: |
+          cd release && sudo tar -czvf ../pstress_debug.tar.gz .
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        # Only try and deploy on merged code
+        #if: "github.repository == 'percona/pg_tde' && github.ref_name == 'main' && (github.event_name == 'push' || github.event_name == 'schedule')"
+        with:
+          artifacts: "pstress_debug.tar.gz"
+          omitBody: true
+          allowUpdates: true
+          generateReleaseNotes: false
+          makeLatest: true
+          tag: "latest"
+          name: "HEAD"
+          replacesArtifacts: true
