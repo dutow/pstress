@@ -16,6 +16,39 @@ Driver script (written in BASH which integrates the workload to perform concurre
 - Kill or shutdown the running server or a node and let it recover and check 
 - In case any issue is identified, it is reported in the pstress run logs. By default, pstress saves each trial directory which has the data directory, server error logs, pstress-thread logs. It also saves the mysqld binaries and the configuration file used for running the test.
 
+# Getting pstress
+
+The easiest way to get pstress is to download the tgz from the Releases page.
+
+The build has no external dependencies or setup requirement, it works immediately after extracting.
+
+Just make sure to download the binary for the correct `glibc` version.
+To check the version, execute for example:
+
+`ldd --version`
+
+# What options does pstress accept?
+
+First, take a quick look at ``` bin/pstress --help, bin/pstress --help --verbose ``` to see available modes and options.
+
+# How to do a sample pstress run
+
+pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the bin directory.
+cd pstress/bin
+
+```bash
+./pstress --flavor=ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
+```
+
+# How to do a sample pstress run through Driver Script
+
+It can be run with the driver shell script(pstress-run.sh) and a configuration file(pstress-run.conf) located in pstress directory.
+cd pstress/pstress
+```bash
+nohup ./pstress-run.sh pstress-run.conf 2>&1 &
+```
+Check run logs through tail -f nohup.out
+
 # How to build pstress ?
 
 1. Install and setup `conan2` and a recent C++ compiler with C++17 support
@@ -42,30 +75,6 @@ After the initial build, the project can be rebuilt by either:
 
 * Executing `cmake --build --target install --preset conan-debug` (or conan-release) in the `pstress` directory
 * Going to the build/<Debug/Release> directory, and executing `ninja install` or `cmake --build . --target install`
-
-
-# What options does pstress accept?
-
-First, take a quick look at ``` bin/pstress --help, bin/pstress --help --verbose ``` to see available modes and options.
-
-# How to do a sample pstress run
-
-pstress must be run from the directory where the executable binaries are located. Commonly, the binaries are located inside the bin directory.
-cd pstress/bin
-
-```bash
-./pstress --flavor=ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
-```
-
-# How to do a sample pstress run through Driver Script
-
-It can be run with the driver shell script(pstress-run.sh) and a configuration file(pstress-run.conf) located in pstress directory.
-cd pstress/pstress
-```bash
-nohup ./pstress-run.sh pstress-run.conf 2>&1 &
-```
-Check run logs through tail -f nohup.out
-
 
 # Command line options example:
 
