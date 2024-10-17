@@ -1,6 +1,7 @@
 #include "node.hpp"
 #include "common.hpp"
 #include "random_test.hpp"
+#include "sql_variant/mysql.hpp"
 #include <cerrno>
 #include <cstring>
 #include <filesystem>
@@ -129,60 +130,36 @@ int Node::startWork() {
 }
 
 void Node::tryConnect() {
-  MYSQL *conn;
-  conn = mysql_init(NULL);
-  if (conn == NULL) {
-    std::cerr << "Error " << mysql_errno(conn) << ": " << mysql_error(conn)
-              << std::endl;
-    std::cerr << "* PSTRESS: Unable to continue [1], exiting" << std::endl;
-    general_log << "Error " << mysql_errno(conn) << ": " << mysql_error(conn)
-                << std::endl;
-    general_log << "* PSTRESS: Unable to continue [1], exiting" << std::endl;
-    mysql_close(conn);
-    mysql_library_end();
-    exit(EXIT_FAILURE);
-  }
-  if (mysql_real_connect(conn, myParams.address.c_str(),
-                         myParams.username.c_str(), myParams.password.c_str(),
-                         options->at(Option::DATABASE)->getString().c_str(),
-                         myParams.port, myParams.socket.c_str(), 0) == NULL) {
-    std::cerr << "Error " << mysql_errno(conn) << ": " << mysql_error(conn)
-              << std::endl;
-    std::cerr << "* PSTRESS: Unable to continue [2], exiting" << std::endl;
-    general_log << "Error " << mysql_errno(conn) << ": " << mysql_error(conn)
-                << std::endl;
-    general_log << "* PSTRESS: Unable to continue [2], exiting" << std::endl;
-    mysql_close(conn);
-    mysql_library_end();
-    exit(EXIT_FAILURE);
-  }
-  general_log << "- Connected to " << mysql_get_host_info(conn) << "..."
-              << std::endl;
-  // getting the real server version
-  MYSQL_RES *result = NULL;
-  std::string server_version;
 
-  if (!mysql_query(conn, "select @@version_comment limit 1") &&
-      (result = mysql_use_result(conn))) {
-    MYSQL_ROW row = mysql_fetch_row(result);
-    if (row && row[0]) {
-      server_version = mysql_get_server_info(conn);
-      server_version.append(" ");
-      server_version.append(row[0]);
-    }
-  } else {
-    server_version = mysql_get_server_info(conn);
-  }
-  general_log << "- Connected server version: " << server_version << std::endl;
-  if (strcmp(PLATFORM_ID, "Darwin") == 0)
-    general_log << "- Table compression is disabled as hole punching is not "
-                   "supported on OSX"
+  try {
+    sql_variant::MySQL connection({myParams.database, myParams.address,
+                                   myParams.socket, myParams.username,
+                                   myParams.password, myParams.maxpacket,
+                                   myParams.port});
+
+    general_log << "- Connected to " << connection.hostInfo() << "..."
                 << std::endl;
-  if (result != NULL) {
-    mysql_free_result(result);
+
+    std::string server_version = connection.serverInfo();
+
+    general_log << "- Connected server version: " << server_version
+                << std::endl;
+
+    // TODO: move this output to the correct location
+    if (strcmp(PLATFORM_ID, "Darwin") == 0)
+      general_log << "- Table compression is disabled as hole punching is not "
+                     "supported on OSX"
+                  << std::endl;
+
+  } catch (sql_variant::SqlException &sqle) {
+    std::cerr << "Error " << sqle.what() << std::endl;
+    std::cerr << "* PSTRESS: Unable to continue [1], exiting" << std::endl;
+    general_log << "Error " << sqle.what() << std::endl;
+    general_log << "* PSTRESS: Unable to continue [1], exiting" << std::endl;
+
+    exit(EXIT_FAILURE);
   }
-  mysql_close(conn);
-  mysql_thread_end();
+
   if (options->at(Option::TEST_CONNECTION)->getBool()) {
     exit(EXIT_SUCCESS);
   }

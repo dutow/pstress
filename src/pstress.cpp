@@ -17,6 +17,7 @@
 #include "node.hpp"
 #include "pstress.hpp"
 #include "random_test.hpp"
+#include "sql_variant/mysql.hpp"
 #include <INIReader.hpp>
 #include <libgen.h> //dirname() uses this
 #include <mysql.h>
@@ -182,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   save_metadata_to_file();
   clean_up_at_end();
-  mysql_library_end();
+  sql_variants::MySQL::program_end();
   delete_options();
   std::cout << "COMPLETED" << std::endl;
 

@@ -137,4 +137,40 @@ QueryResult MySQL::executeQuery(std::string const &query) const {
   return result;
 }
 
+std::optional<std::string_view>
+MySQL::querySingleValue(const std::string &sql) const {
+
+  // TODO: execute_sql should be here in a heavily refactored state so we can
+  // use it (for logging)
+  // const auto res = execute_sql(sql, thd);
+
+  const auto res = executeQuery(sql);
+
+  if (!res.success() || res.data == nullptr || res.data->numFields() < 1 ||
+      res.data->numRows() < 1) {
+    return std::nullopt;
+  }
+
+  const auto row = res.data->nextRow();
+
+  return row.rowData[0];
+}
+
+std::string MySQL::serverInfo() const {
+  std::string versionInfo = mysql_get_server_info(connection);
+
+  auto extendedInfo = querySingleValue("select @@version_comment limit 1");
+
+  if (extendedInfo) {
+    versionInfo += " ";
+    versionInfo += extendedInfo.value();
+  }
+
+  return versionInfo;
+}
+
+std::string MySQL::hostInfo() const { return mysql_get_host_info(connection); }
+
+void MySQL::library_end() { mysql_library_end(); }
+
 } // namespace sql_variant

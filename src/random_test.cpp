@@ -78,7 +78,8 @@ static bool get_check_result(const std::string &sql, Thd1 *thd) {
   return true;
 }
 
-static std::string mysql_read_single_value(const std::string &sql, Thd1 *thd) {
+// TODO: duplicated from sql_variant because this one has logging
+static std::string sql_read_single_value(const std::string &sql, Thd1 *thd) {
 
   const auto res = execute_sql(sql, thd);
 
@@ -132,7 +133,7 @@ int sum_of_all_options(Thd1 *thd) {
   /* find out innodb page_size */
   if (options->at(Option::ENGINE)->getString().compare("INNODB") == 0) {
     g_innodb_page_size =
-        std::stoi(mysql_read_single_value("select @@innodb_page_size", thd));
+        std::stoi(sql_read_single_value("select @@innodb_page_size", thd));
     assert(g_innodb_page_size % 1024 == 0);
     g_innodb_page_size /= 1024;
   }
@@ -172,7 +173,7 @@ int sum_of_all_options(Thd1 *thd) {
   }
 
   /* check if keyring component is installed */
-  if (mysql_read_single_value(
+  if (sql_read_single_value(
           "SELECT status_value FROM performance_schema.keyring_component_status WHERE \
       status_key='component_status'",
           thd) == "Active")
@@ -303,13 +304,13 @@ int sum_of_all_options(Thd1 *thd) {
     opt_int_set(ALTER_INSTANCE_RELOAD_KEYRING, 0);
   }
 
-  if (mysql_read_single_value("select @@innodb_temp_tablespace_encrypt", thd) ==
+  if (sql_read_single_value("select @@innodb_temp_tablespace_encrypt", thd) ==
       "1")
     encrypted_temp_tables = true;
 
   if (options->at(Option::FLAVOR)->getString() ==
           "ps" && // TODO: does pxc support this?
-      mysql_read_single_value("select @@innodb_sys_tablespace_encrypt", thd) ==
+      sql_read_single_value("select @@innodb_sys_tablespace_encrypt", thd) ==
           "1")
     encrypted_sys_tablelspaces = true;
 

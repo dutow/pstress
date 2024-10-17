@@ -90,6 +90,15 @@ public:
 
   std::uint64_t getAffectedRows() const;
 
+  std::string serverInfo() const;
+
+  std::string hostInfo() const;
+
+  std::optional<std::string_view>
+  querySingleValue(const std::string &sql) const;
+
+  static void library_end();
+
 private:
   MYSQL *connection;
 };
