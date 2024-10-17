@@ -47,13 +47,13 @@ void Node::workerThread(int number) {
   }
 
   try {
-    sql_variant::MySQL connection({myParams.database, myParams.address,
-                                   myParams.socket, myParams.username,
-                                   myParams.password, myParams.maxpacket,
-                                   myParams.port});
+    auto connection = sql_variant::connect(
+        myParams.flavor, {myParams.database, myParams.address, myParams.socket,
+                          myParams.username, myParams.password,
+                          myParams.maxpacket, myParams.port});
 
     Thd1 *thd =
-        new Thd1(number, thread_log, general_log, client_log, connection,
+        new Thd1(number, thread_log, general_log, client_log, *connection,
                  performed_queries_total, failed_queries_total);
 
     /* run pstress in with dynamic generator or infile */

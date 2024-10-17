@@ -1,7 +1,7 @@
 #include "node.hpp"
 #include "common.hpp"
 #include "random_test.hpp"
-#include "sql_variant/mysql.hpp"
+#include "sql_variant/sql_variant.hpp"
 #include <cerrno>
 #include <cstring>
 #include <filesystem>
@@ -132,15 +132,15 @@ int Node::startWork() {
 void Node::tryConnect() {
 
   try {
-    sql_variant::MySQL connection({myParams.database, myParams.address,
-                                   myParams.socket, myParams.username,
-                                   myParams.password, myParams.maxpacket,
-                                   myParams.port});
+    auto connection = sql_variant::connect(
+        myParams.flavor, {myParams.database, myParams.address, myParams.socket,
+                          myParams.username, myParams.password,
+                          myParams.maxpacket, myParams.port});
 
-    general_log << "- Connected to " << connection.hostInfo() << "..."
+    general_log << "- Connected to " << connection->hostInfo() << "..."
                 << std::endl;
 
-    std::string server_version = connection.serverInfoString();
+    std::string server_version = connection->serverInfoString();
 
     general_log << "- Connected server version: " << server_version
                 << std::endl;

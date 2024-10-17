@@ -21,7 +21,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "sql_variant/mysql.hpp"
+#include "sql_variant/sql_variant.hpp"
 
 #define INNODB_16K_PAGE_SIZE 16
 #define INNODB_8K_PAGE_SIZE 8
@@ -149,7 +149,7 @@ struct Index {
 
 struct Thd1 {
   Thd1(int id, std::ofstream &tl, std::ofstream &ddl_l, std::ofstream &client_l,
-       sql_variant::MySQL &c, std::atomic<unsigned long long> &p,
+       sql_variant::GenericSQL &c, std::atomic<unsigned long long> &p,
        std::atomic<unsigned long long> &f)
       : thread_id(id), thread_log(tl), ddl_logs(ddl_l), client_log(client_l),
         conn(c), performed_queries_total(p), failed_queries_total(f) {};
@@ -162,7 +162,7 @@ struct Thd1 {
   std::ofstream &thread_log;
   std::ofstream &ddl_logs;
   std::ofstream &client_log;
-  sql_variant::MySQL &conn;
+  sql_variant::GenericSQL &conn;
   std::atomic<unsigned long long> &performed_queries_total;
   std::atomic<unsigned long long> &failed_queries_total;
   bool ddl_query = false;     // is the query ddl

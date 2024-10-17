@@ -16,7 +16,7 @@
 /* struct for node setup */
 struct workerParams {
   workerParams() {
-    flavor = "";
+    flavor = opt_string(FLAVOR);
     myName = "default.node.tld";
     database = opt_string(DATABASE);
     address = opt_string(ADDRESS);
@@ -70,7 +70,6 @@ public:
 private:
   // declaration for worker thread function
   void workerThread(int);
-  inline unsigned long long getAffectedRows(MYSQL *);
   void tryConnect();
   bool createGeneralLog();
   void readSettings(std::string);

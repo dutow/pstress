@@ -54,8 +54,6 @@ struct MySQLSpecificResult : sql_variant::QuerySpecificResult {
 
 namespace sql_variant {
 
-QuerySpecificResult::~QuerySpecificResult() {}
-
 MySQL::MySQL(ServerParams const &params) {
   {
     // mysql_connect is not thread safe, hold a mutex
@@ -97,13 +95,6 @@ MySQL::~MySQL() {
   }
 }
 
-std::uint64_t MySQL::getAffectedRows() const {
-  if (mysql_affected_rows(connection) == ~(unsigned long long)0) {
-    return 0LL;
-  }
-  return mysql_affected_rows(connection);
-}
-
 void MySQL::logError(std::ostream &ostream) const {
   ostream << mysql_errno(connection) << ": " << mysql_error(connection);
 }
@@ -117,15 +108,14 @@ QueryResult MySQL::executeQuery(std::string const &query) const {
 
   result.executionTime = end - result.executedAt;
 
-  result.errorInfo.errorCode = mysql_errno(connection);
+  const auto errCode = mysql_errno(connection);
+  result.errorInfo.errorCode = std::to_string(errCode);
   result.errorInfo.errorMessage = mysql_error(connection);
 
   if (qres == 1) { // failure
 
     result.errorInfo.errorStatus =
-        result.errorInfo.errorCode ==
-                (CR_SERVER_GONE_ERROR ||
-                 result.errorInfo.errorCode == CR_SERVER_LOST)
+        (errCode == CR_SERVER_GONE_ERROR || errCode == CR_SERVER_LOST)
             ? SqlStatus::serverGone
             : SqlStatus::error;
   } else { // success
@@ -137,25 +127,6 @@ QueryResult MySQL::executeQuery(std::string const &query) const {
   }
 
   return result;
-}
-
-std::optional<std::string_view>
-MySQL::querySingleValue(const std::string &sql) const {
-
-  // TODO: execute_sql should be here in a heavily refactored state so we can
-  // use it (for logging)
-  // const auto res = execute_sql(sql, thd);
-
-  const auto res = executeQuery(sql);
-
-  if (!res.success() || res.data == nullptr || res.data->numFields() < 1 ||
-      res.data->numRows() < 1) {
-    return std::nullopt;
-  }
-
-  const auto row = res.data->nextRow();
-
-  return row.rowData[0];
 }
 
 std::string MySQL::serverInfoString() const {
@@ -170,8 +141,6 @@ std::string MySQL::serverInfoString() const {
 
   return versionInfo;
 }
-
-ServerInfo MySQL::serverInfo() const { return serverInfo_; }
 
 ServerInfo MySQL::calculateServerInfo() const {
   std::string versionInfo = mysql_get_server_info(connection);

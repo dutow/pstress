@@ -6,7 +6,7 @@
 #include "random_test.hpp"
 #include "common.hpp"
 #include "node.hpp"
-#include "sql_variant/mysql.hpp"
+#include "sql_variant/sql_variant.hpp"
 
 #include <iomanip>
 #include <libgen.h>
@@ -98,9 +98,10 @@ static std::string sql_read_single_value(const std::string &sql, Thd1 *thd) {
 int sum_of_all_options(Thd1 *thd) {
 
   /* find out innodb page_size */
-  if (options->at(Option::ENGINE)->getString().compare("INNODB") == 0) {
-    g_innodb_page_size =
-        std::stoi(sql_read_single_value("select @@innodb_page_size", thd));
+  if (thd->conn.serverInfo().is_mysql_like() &&
+      options->at(Option::ENGINE)->getString().compare("INNODB") == 0) {
+    g_innodb_page_size = std::stoi(sql_read_single_value(
+        "select @@innodb_page_size", thd)); // TODO: this crashes on failure
     assert(g_innodb_page_size % 1024 == 0);
     g_innodb_page_size /= 1024;
   }
@@ -132,7 +133,7 @@ int sum_of_all_options(Thd1 *thd) {
   ;
 
   /* for 5.7 disable some features */
-  if (thd->conn.serverInfo().before(sql_variant::flavor::ANY, 80000)) {
+  if (thd->conn.serverInfo().before(sql_variant::flavor::ANY_MYSQL, 80000)) {
     opt_int_set(ALTER_TABLESPACE_RENAME, 0);
     opt_int_set(RENAME_COLUMN, 0);
     opt_int_set(UNDO_SQL, 0);
@@ -185,7 +186,8 @@ int sum_of_all_options(Thd1 *thd) {
   /* Disabling alter discard tablespace until 8.0.30
    * Bug: https://jira.percona.com/browse/PS-7865 is fixed by upstream in
    * MySQL 8.0.31 */
-  if (thd->conn.serverInfo().between(sql_variant::flavor::ANY, 80000, 80030)) {
+  if (thd->conn.serverInfo().between(sql_variant::flavor::ANY_MYSQL, 80000,
+                                     80030)) {
     opt_int_set(ALTER_DISCARD_TABLESPACE, 0);
   }
 
@@ -207,7 +209,8 @@ int sum_of_all_options(Thd1 *thd) {
     options->at(Option::ALTER_ENCRYPTION_KEY)->setInt(0);
   }
 
-  if (thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000)) {
+  if (thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY_MYSQL,
+                                         80000)) {
     /* for 8.0 default columns set default columns */
     if (!options->at(Option::COLUMNS)->cl)
       options->at(Option::COLUMNS)->setInt(7);
@@ -1621,7 +1624,7 @@ Table *Table::table_id(TABLE_TYPES type, int id,
   static auto no_encryption = opt_bool(NO_ENCRYPTION);
 
   /* temporary table on 8.0 can't have key block size */
-  if (!(serverInfo.after_or_is(sql_variant::flavor::ANY, 80000) &&
+  if (!(serverInfo.after_or_is(sql_variant::flavor::ANY_MYSQL, 80000) &&
         type == TEMPORARY)) {
     if (g_key_block_size.size() > 0)
       table->key_block_size =
@@ -2787,8 +2790,8 @@ void set_mysqld_variable(Thd1 *thd) {
 void alter_tablespace_encryption(Thd1 *thd) {
   std::string tablespace;
 
-  if ((rand_int(10) < 2 &&
-       thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000)) ||
+  if ((rand_int(10) < 2 && thd->conn.serverInfo().after_or_is(
+                               sql_variant::flavor::ANY_MYSQL, 80000)) ||
       g_tablespace.size() == 0) {
     tablespace = "mysql";
   } else if (g_tablespace.size() > 0) {
@@ -3264,8 +3267,11 @@ void clean_up_at_end() {
 /* create new database and tablespace */
 void create_database_tablespace(Thd1 *thd) {
 
+  if (!thd->conn.serverInfo().is_mysql_like())
+    return; // TODO: just skip for now, this is mysql specific
+
   const bool mysqllike80 =
-      thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000);
+      thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY_MYSQL, 80000);
 
   /* drop database test*/
   execute_sql("DROP DATABASE IF EXISTS test", thd);

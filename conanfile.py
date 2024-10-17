@@ -7,6 +7,7 @@ class SimplicityRecipe(ConanFile):
 
     def requirements(self):
         self.requires("libmysqlclient/8.1.0")
+        self.requires("libpqxx/7.9.2")
         #self.requires("inih/58") - need 59 at least, not yet released
         self.requires("rapidjson/cci.20230929")
 

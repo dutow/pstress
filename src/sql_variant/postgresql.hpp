@@ -3,17 +3,21 @@
 
 #include "sql_variant/generic.hpp"
 
-struct MYSQL;
+struct PostgreSQL;
+
+namespace pqxx {
+class connection;
+}
 
 namespace sql_variant {
 
-class MySQL : public GenericSQL {
+class PostgreSQL : public GenericSQL {
 public:
-  MySQL(ServerParams const &params);
-  ~MySQL() override;
+  PostgreSQL(ServerParams const &params);
+  ~PostgreSQL() override;
 
-  MySQL(MySQL &&) noexcept = default;
-  MySQL &operator=(MySQL &&) noexcept = default;
+  PostgreSQL(PostgreSQL &&) noexcept = default;
+  PostgreSQL &operator=(PostgreSQL &&) noexcept = default;
 
   void logError(std::ostream &ostream) const override;
 
@@ -26,7 +30,7 @@ public:
   static void library_end();
 
 private:
-  MYSQL *connection;
+  std::unique_ptr<pqxx::connection> connection;
 
   ServerInfo calculateServerInfo() const;
 };
