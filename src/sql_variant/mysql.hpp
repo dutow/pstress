@@ -14,6 +14,34 @@ struct MYSQL;
 
 namespace sql_variant {
 
+enum class flavor { ANY, ps, pxc, mysql };
+
+struct ServerInfo {
+  flavor flavor_;
+  std::uint64_t version;
+
+  bool after_or_is(flavor flav, std::uint64_t ver) const {
+    if (flav != flavor::ANY && flavor_ != flav)
+      return false;
+
+    return version >= ver;
+  }
+
+  bool before(flavor flav, std::uint64_t ver) const {
+    if (flav != flavor::ANY && flavor_ != flav)
+      return false;
+
+    return version < ver;
+  }
+
+  bool between(flavor flav, std::uint64_t verMin, std::uint64_t verMax) const {
+    if (flav != flavor::ANY && flavor_ != flav)
+      return false;
+
+    return version >= verMin && version <= verMax;
+  }
+};
+
 struct ServerParams {
   std::string database;
   std::string address;
@@ -90,7 +118,9 @@ public:
 
   std::uint64_t getAffectedRows() const;
 
-  std::string serverInfo() const;
+  std::string serverInfoString() const;
+
+  ServerInfo serverInfo() const;
 
   std::string hostInfo() const;
 
@@ -99,7 +129,12 @@ public:
 
   static void library_end();
 
+protected:
+  ServerInfo serverInfo_;
+
 private:
   MYSQL *connection;
+
+  ServerInfo calculateServerInfo() const;
 };
 } // namespace sql_variant

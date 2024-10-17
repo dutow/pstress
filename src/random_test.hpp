@@ -32,7 +32,6 @@
 #define MAX_SEED_SIZE 100000
 #define MAX_RANDOM_STRING_SIZE 32
 #define DESC_INDEXES_IN_COLUMN 34
-#define MYSQL_8 8.0
 
 #define opt_int(a) options->at(Option::a)->getInt();
 #define opt_int_set(a, b) options->at(Option::a)->setInt(b);
@@ -177,7 +176,8 @@ struct Table {
   enum TABLE_TYPES { PARTITION, NORMAL, TEMPORARY } type;
 
   Table(std::string n);
-  static Table *table_id(TABLE_TYPES choice, int id);
+  static Table *table_id(TABLE_TYPES choice, int id,
+                         sql_variant::ServerInfo const &serverInfo);
   std::string definition(bool with_index = true);
   /* add secondary indexes */
   bool load_secondary_indexes(Thd1 *thd);
@@ -343,7 +343,7 @@ void alter_tablespace_rename(Thd1 *thd);
 void set_mysqld_variable(Thd1 *thd);
 void add_server_options(std::string str);
 void alter_database_encryption(Thd1 *thd);
-void create_in_memory_data();
-void generate_metadata_for_tables();
+void create_in_memory_data(sql_variant::ServerInfo const &serverInfo);
+void generate_metadata_for_tables(sql_variant::ServerInfo const &serverInfo);
 void create_database_tablespace(Thd1 *thd);
 #endif

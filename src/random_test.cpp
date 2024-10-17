@@ -93,39 +93,6 @@ static std::string sql_read_single_value(const std::string &sql, Thd1 *thd) {
   return std::string(row.rowData[0].value_or(""));
 }
 
-/* return server version in number format
- Example 8.0.26 -> 80026
- Example 5.7.35 -> 50735
-*/
-static int get_server_version() {
-  std::string ps_base = mysql_get_client_info();
-  unsigned long major = 0, minor = 0, version = 0;
-  std::size_t major_p = ps_base.find(".");
-  if (major_p != std::string::npos)
-    major = stoi(ps_base.substr(0, major_p));
-
-  std::size_t minor_p = ps_base.find(".", major_p + 1);
-  if (minor_p != std::string::npos)
-    minor = stoi(ps_base.substr(major_p + 1, minor_p - major_p));
-
-  std::size_t version_p = ps_base.find(".", minor_p + 1);
-  if (version_p != std::string::npos)
-    version = stoi(ps_base.substr(minor_p + 1, version_p - minor_p));
-  else
-    version = stoi(ps_base.substr(minor_p + 1));
-  auto server_version = major * 10000 + minor * 100 + version;
-  return server_version;
-}
-
-/* return server version in number format
- Example 8.0.26 -> 80026
- Example 5.7.35 -> 50735
-*/
-static int server_version() {
-  static int sv = get_server_version();
-  return sv;
-}
-
 /* return probabality of all options and disable some feature based on user
  * request/ branch/ fork */
 int sum_of_all_options(Thd1 *thd) {
@@ -165,7 +132,7 @@ int sum_of_all_options(Thd1 *thd) {
   ;
 
   /* for 5.7 disable some features */
-  if (server_version() < 80000) {
+  if (thd->conn.serverInfo().before(sql_variant::flavor::ANY, 80000)) {
     opt_int_set(ALTER_TABLESPACE_RENAME, 0);
     opt_int_set(RENAME_COLUMN, 0);
     opt_int_set(UNDO_SQL, 0);
@@ -218,7 +185,7 @@ int sum_of_all_options(Thd1 *thd) {
   /* Disabling alter discard tablespace until 8.0.30
    * Bug: https://jira.percona.com/browse/PS-7865 is fixed by upstream in
    * MySQL 8.0.31 */
-  if (server_version() >= 80000 && server_version() <= 80030) {
+  if (thd->conn.serverInfo().between(sql_variant::flavor::ANY, 80000, 80030)) {
     opt_int_set(ALTER_DISCARD_TABLESPACE, 0);
   }
 
@@ -240,7 +207,7 @@ int sum_of_all_options(Thd1 *thd) {
     options->at(Option::ALTER_ENCRYPTION_KEY)->setInt(0);
   }
 
-  if (server_version() >= 80000) {
+  if (thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000)) {
     /* for 8.0 default columns set default columns */
     if (!options->at(Option::COLUMNS)->cl)
       options->at(Option::COLUMNS)->setInt(7);
@@ -315,9 +282,11 @@ int sum_of_all_options(Thd1 *thd) {
     encrypted_sys_tablelspaces = true;
 
   /* Disable GCache encryption for MS or PS, only supported in PXC-8.0 */
-  if (options->at(Option::FLAVOR)->getString() == "pxc" != 0 ||
-      server_version() < 80000)
+  if (thd->conn.serverInfo().after_or_is(sql_variant::flavor::pxc, 80000)) {
+    // gcache master key supported
+  } else {
     opt_int_set(ALTER_GCACHE_MASTER_KEY, 0);
+  }
 
   /* If OS is Mac, disable table compression as hole punching is not supported
    * on OSX */
@@ -1628,7 +1597,8 @@ void Table::CreateDefaultIndex() {
 }
 
 /* Create new table and pick some attributes */
-Table *Table::table_id(TABLE_TYPES type, int id) {
+Table *Table::table_id(TABLE_TYPES type, int id,
+                       sql_variant::ServerInfo const &serverInfo) {
   Table *table;
   std::string name = "tt_" + std::to_string(id);
   switch (type) {
@@ -1651,7 +1621,8 @@ Table *Table::table_id(TABLE_TYPES type, int id) {
   static auto no_encryption = opt_bool(NO_ENCRYPTION);
 
   /* temporary table on 8.0 can't have key block size */
-  if (!(server_version() >= 80000 && type == TEMPORARY)) {
+  if (!(serverInfo.after_or_is(sql_variant::flavor::ANY, 80000) &&
+        type == TEMPORARY)) {
     if (g_key_block_size.size() > 0)
       table->key_block_size =
           g_key_block_size[rand_int(g_key_block_size.size() - 1)];
@@ -1855,7 +1826,7 @@ std::string Table::definition(bool with_index) {
 }
 
 /* create default table includes all tables*/
-void generate_metadata_for_tables() {
+void generate_metadata_for_tables(sql_variant::ServerInfo const &serverInfo) {
   auto tables = opt_int(TABLES);
 
   auto only_temporary_tables = opt_bool(ONLY_TEMPORARY);
@@ -1863,9 +1834,9 @@ void generate_metadata_for_tables() {
   if (!only_temporary_tables) {
     for (int i = 1; i <= tables; i++) {
       if (!options->at(Option::ONLY_PARTITION)->getBool())
-        all_tables->push_back(Table::table_id(Table::NORMAL, i));
+        all_tables->push_back(Table::table_id(Table::NORMAL, i, serverInfo));
       if (!options->at(Option::NO_PARTITION)->getBool())
-        all_tables->push_back(Table::table_id(Table::PARTITION, i));
+        all_tables->push_back(Table::table_id(Table::PARTITION, i, serverInfo));
     }
   }
 }
@@ -2816,7 +2787,8 @@ void set_mysqld_variable(Thd1 *thd) {
 void alter_tablespace_encryption(Thd1 *thd) {
   std::string tablespace;
 
-  if ((rand_int(10) < 2 && server_version() >= 80000) ||
+  if ((rand_int(10) < 2 &&
+       thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000)) ||
       g_tablespace.size() == 0) {
     tablespace = "mysql";
   } else if (g_tablespace.size() > 0) {
@@ -3077,7 +3049,7 @@ void save_metadata_to_file() {
 
 /* create in memory data about tablespaces, row_format, key_block size and undo
  * tablespaces */
-void create_in_memory_data() {
+void create_in_memory_data(sql_variant::ServerInfo const &serverInfo) {
 
   /* Adjust the tablespaces */
   if (!options->at(Option::NO_TABLESPACE)->getBool()) {
@@ -3112,8 +3084,7 @@ void create_in_memory_data() {
 
   /* set some of tablespace encrypt */
   if (!options->at(Option::NO_ENCRYPTION)->getBool() &&
-      !((options->at(Option::FLAVOR)->getString() == "mysql") &&
-        server_version() < 80000)) {
+      !(serverInfo.before(sql_variant::flavor::mysql, 80000))) {
     int i = 0;
     for (auto &tablespace : g_tablespace) {
       if (i++ % 2 == 0 &&
@@ -3293,6 +3264,9 @@ void clean_up_at_end() {
 /* create new database and tablespace */
 void create_database_tablespace(Thd1 *thd) {
 
+  const bool mysqllike80 =
+      thd->conn.serverInfo().after_or_is(sql_variant::flavor::ANY, 80000);
+
   /* drop database test*/
   execute_sql("DROP DATABASE IF EXISTS test", thd);
   execute_sql("CREATE DATABASE test", thd); // todo encrypt database/schema
@@ -3312,12 +3286,12 @@ void create_database_tablespace(Thd1 *thd) {
     if (!options->at(Option::NO_ENCRYPTION)->getBool()) {
       if (tab.substr(tab.size() - 2, 2).compare("_e") == 0)
         sql += " ENCRYPTION='Y'";
-      else if (server_version() >= 80000)
+      else if (mysqllike80)
         sql += " ENCRYPTION='N'";
     }
 
     /* first try to rename tablespace back */
-    if (server_version() >= 80000)
+    if (mysqllike80)
       execute_sql("ALTER TABLESPACE " + tab + "_rename rename to " + tab, thd);
 
     execute_sql("DROP TABLESPACE " + tab, thd);
@@ -3326,7 +3300,7 @@ void create_database_tablespace(Thd1 *thd) {
       throw std::runtime_error("error in " + sql);
   }
 
-  if (server_version() >= 80000) {
+  if (mysqllike80) {
     for (auto &name : g_undo_tablespace) {
       std::string sql =
           "CREATE UNDO TABLESPACE " + name + " ADD DATAFILE '" + name + ".ibu'";
@@ -3391,7 +3365,7 @@ bool Thd1::load_metadata() {
   rng = std::mt19937(initial_seed);
 
   /* create in-memory data for general tablespaces */
-  create_in_memory_data();
+  create_in_memory_data(conn.serverInfo());
 
   if (options->at(Option::STEP)->getInt() > 1 &&
       !options->at(Option::PREPARE)->getBool()) {
@@ -3399,7 +3373,7 @@ bool Thd1::load_metadata() {
     std::cout << "metadata loaded from " << file << std::endl;
   } else {
     create_database_tablespace(this);
-    generate_metadata_for_tables();
+    generate_metadata_for_tables(conn.serverInfo());
     std::cout << "metadata created randomly" << std::endl;
   }
 
@@ -3427,7 +3401,7 @@ bool Thd1::run_some_query() {
   std::vector<Table *> *all_session_tables = new std::vector<Table *>;
   for (int i = 0; i < temp_tables; i++) {
 
-    Table *table = Table::table_id(Table::TEMPORARY, i);
+    Table *table = Table::table_id(Table::TEMPORARY, i, conn.serverInfo());
     if (!table->load(this))
       return false;
     all_session_tables->push_back(table);

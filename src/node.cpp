@@ -140,7 +140,7 @@ void Node::tryConnect() {
     general_log << "- Connected to " << connection.hostInfo() << "..."
                 << std::endl;
 
-    std::string server_version = connection.serverInfo();
+    std::string server_version = connection.serverInfoString();
 
     general_log << "- Connected server version: " << server_version
                 << std::endl;

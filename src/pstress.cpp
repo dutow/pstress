@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   save_metadata_to_file();
   clean_up_at_end();
-  sql_variants::MySQL::program_end();
+  sql_variant::MySQL::library_end();
   delete_options();
   std::cout << "COMPLETED" << std::endl;
 

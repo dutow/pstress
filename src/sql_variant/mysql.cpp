@@ -85,6 +85,8 @@ MySQL::MySQL(ServerParams const &params) {
   if (connection == nullptr) {
     throw SqlException("mysql_init failed");
   }
+
+  serverInfo_ = calculateServerInfo();
 }
 
 MySQL::~MySQL() {
@@ -156,7 +158,7 @@ MySQL::querySingleValue(const std::string &sql) const {
   return row.rowData[0];
 }
 
-std::string MySQL::serverInfo() const {
+std::string MySQL::serverInfoString() const {
   std::string versionInfo = mysql_get_server_info(connection);
 
   auto extendedInfo = querySingleValue("select @@version_comment limit 1");
@@ -167,6 +169,39 @@ std::string MySQL::serverInfo() const {
   }
 
   return versionInfo;
+}
+
+ServerInfo MySQL::serverInfo() const { return serverInfo_; }
+
+ServerInfo MySQL::calculateServerInfo() const {
+  std::string versionInfo = mysql_get_server_info(connection);
+  unsigned long major = 0, minor = 0, version = 0;
+  std::size_t major_p = versionInfo.find(".");
+  if (major_p != std::string::npos)
+    major = stoi(versionInfo.substr(0, major_p));
+
+  std::size_t minor_p = versionInfo.find(".", major_p + 1);
+  if (minor_p != std::string::npos)
+    minor = stoi(versionInfo.substr(major_p + 1, minor_p - major_p));
+
+  std::size_t version_p = versionInfo.find(".", minor_p + 1);
+  if (version_p != std::string::npos)
+    version = stoi(versionInfo.substr(minor_p + 1, version_p - minor_p));
+  else
+    version = stoi(versionInfo.substr(minor_p + 1));
+  auto server_version = major * 10000 + minor * 100 + version;
+
+  flavor flav = flavor::mysql;
+
+  const auto res = executeQuery("SHOW VARIABLES LIKE '%wsrep%';");
+
+  if (res.success() && res.data != nullptr && res.data->numRows() > 0) {
+    flav = flavor::pxc;
+  } else if (versionInfo.find("-") != std::string::npos) {
+    flav = flavor::ps; // PS is like X.Y.Z-U, upstream is just X.Y.Z
+  }
+
+  return {flav, server_version};
 }
 
 std::string MySQL::hostInfo() const { return mysql_get_host_info(connection); }
