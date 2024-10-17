@@ -18,13 +18,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-full pipx cmake ninja-build clang clang-tidy
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+          sudo apt-get install -y python3-full pipx cmake ninja-build
           pipx ensurepath
           sudo pipx install conan
 
       - name: Setup conan
         run: |
           conan profile detect
+          sed -i 's/gnu14/20/g' /home/runner/.conan2/profiles/default 
+          cat /home/runner/.conan2/profiles/default
 
       - name: Clone repository
         uses: actions/checkout@master
@@ -61,7 +64,7 @@ jobs:
       - name: Publish release
         uses: ncipollo/release-action@v1
         # Only try and deploy on merged code
-        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event_name == 'schedule')"
+        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event_name == 'schedule')
         with:
           artifacts: "pstress_debug_glibc2_35.tar.gz"
           omitBody: true
