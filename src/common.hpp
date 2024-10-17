@@ -9,10 +9,6 @@
 #define MAX_PACKET_DEFAULT 67108864
 #endif
 
-#ifndef FORK
-#define FORK "MySQL"
-#endif
-
 #ifndef PQREVISION
 #define PQREVISION "unknown"
 #endif
@@ -33,6 +29,7 @@
 struct Option {
   enum Type { BOOL, INT, STRING } type;
   enum Opt {
+    FLAVOR,
     INITIAL_SEED,
     NUMBER_OF_GENERAL_TABLESPACE,
     NUMBER_OF_UNDO_TABLESPACE,

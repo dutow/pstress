@@ -16,6 +16,7 @@
 /* struct for node setup */
 struct workerParams {
   workerParams() {
+    flavor = "";
     myName = "default.node.tld";
     database = opt_string(DATABASE);
     address = opt_string(ADDRESS);
@@ -28,6 +29,7 @@ struct workerParams {
     threads = opt_int(THREADS);
     queries_per_thread = opt_int(QUERIES_PER_THREAD);
   };
+  std::string flavor;
   std::string myName; // unique name for worker
   std::string database;
   std::string address;

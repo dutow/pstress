@@ -60,6 +60,10 @@ void add_options() {
   options->resize(Option::MAX);
   Option *opt;
 
+  opt = newOption(Option::STRING, Option::FLAVOR, "flavor");
+  opt->help = "SQL server used (ps,pxc,mysql,psql)";
+  opt->setString("ps");
+
   /* Mode of Pstress */
   opt = newOption(Option::BOOL, Option::PQUERY, "pquery");
   opt->help = "run pstress as pquery 2.0. sqls will be executed from --infine "
@@ -811,8 +815,7 @@ void show_help(Option::Opt option) {
 
 void print_version(void) {
   std::cout << " - PStress v" << PQVERSION << "-" << PQREVISION
-            << " compiled with " << FORK << "-" << mysql_get_client_info()
-            << std::endl;
+            << " compiled with MySQL: " << mysql_get_client_info() << std::endl;
 }
 
 void show_help(std::string help) {
@@ -845,59 +848,63 @@ void show_help() {
 
 void show_cli_help(void) {
   print_version();
-  std::cout << " - General usage: pstress --user=USER --password=PASSWORD "
+  std::cout << " - General usage: pstress --flavor=SQL_VARIANT --user=USER "
+               "--password=PASSWORD "
                "--database=DATABASE"
             << std::endl;
   std::cout << "=> pstress doesn't support multiple nodes when using "
                "commandline options mode!"
             << std::endl;
-  std::cout << "---------------------------------------------------------------"
-               "--------------------------\n"
-            << "| OPTION               | EXPLANATION                           "
-               "       | DEFAULT         |\n"
-            << "---------------------------------------------------------------"
-               "--------------------------\n"
-            << "--database             | The database to connect to            "
-               "       | \n"
-            << "--address              | IP address to connect to              "
-               "       | \n"
-            << "--port                 | The port to connect to                "
-               "       | 3306\n"
-            << "--infile               | The SQL input file                    "
-               "       | pquery.sql\n"
-            << "--logdir               | Log directory                         "
-               "       | /tmp\n"
-            << "--socket               | Socket file to use                    "
-               "       | /tmp/my.sock\n"
-            << "--user                 | The MySQL userID to be used           "
-               "       | shell user\n"
-            << "--password             | The MySQL user's password             "
-               "       | <empty>\n"
-            << "--threads              | The number of threads to use          "
-               "       | 1\n"
-            << "--queries-per-thread   | The number of queries per thread      "
-               "       | 10000\n"
-            << "--verbose              | Duplicates the log to console when "
-               "threads=1 | no\n"
-            << "--log-all-queries      | Log all queries (succeeded and "
-               "failed)       | no\n"
-            << "--log-succeeded-queries| Log succeeded queries                 "
-               "       | no\n"
-            << "--log-failed-queries   | Log failed queries                    "
-               "       | no\n"
-            << "--no-shuffle           | Execute SQL sequentially              "
-               "       | randomly\n"
-            << "--test-connection      | Test connection to server and exit    "
-               "       | no\n"
-            << "--log-query-number     | Write query # to logs                 "
-               "       | no\n"
-            << "--log-client-output    | Log query output to separate file     "
-               "       | no\n"
-            << "--ddl		    | USE DDL in command line option           "
-               "    | true\n"
-            << "---------------------------------------------------------------"
-               "--------------------------"
-            << std::endl;
+  std::cout
+      << "---------------------------------------------------------------"
+         "--------------------------\n"
+      << "| OPTION               | EXPLANATION                           "
+         "       | DEFAULT         |\n"
+      << "---------------------------------------------------------------"
+         "--------------------------\n"
+      << "--flavor               | The databasetype  to connect to (ps,pxc"
+         ",mydql,psql)| \n"
+      << "--database             | The database to connect to            "
+         "       | \n"
+      << "--address              | IP address to connect to              "
+         "       | \n"
+      << "--port                 | The port to connect to                "
+         "       | 3306\n"
+      << "--infile               | The SQL input file                    "
+         "       | pquery.sql\n"
+      << "--logdir               | Log directory                         "
+         "       | /tmp\n"
+      << "--socket               | Socket file to use                    "
+         "       | /tmp/my.sock\n"
+      << "--user                 | The MySQL userID to be used           "
+         "       | shell user\n"
+      << "--password             | The MySQL user's password             "
+         "       | <empty>\n"
+      << "--threads              | The number of threads to use          "
+         "       | 1\n"
+      << "--queries-per-thread   | The number of queries per thread      "
+         "       | 10000\n"
+      << "--verbose              | Duplicates the log to console when "
+         "threads=1 | no\n"
+      << "--log-all-queries      | Log all queries (succeeded and "
+         "failed)       | no\n"
+      << "--log-succeeded-queries| Log succeeded queries                 "
+         "       | no\n"
+      << "--log-failed-queries   | Log failed queries                    "
+         "       | no\n"
+      << "--no-shuffle           | Execute SQL sequentially              "
+         "       | randomly\n"
+      << "--test-connection      | Test connection to server and exit    "
+         "       | no\n"
+      << "--log-query-number     | Write query # to logs                 "
+         "       | no\n"
+      << "--log-client-output    | Log query output to separate file     "
+         "       | no\n"
+      << "--ddl		    | USE DDL in command line option           "
+         "    | true\n"
+      << "---------------------------------------------------------------"
+         "--------------------------"
+      << std::endl;
 }
 
 void show_config_help(void) {
@@ -914,6 +921,8 @@ void show_config_help(void) {
   std::cout <<
 
       "[node0.domain.tld]\n"
+            << "# The database type to connect to (ps,pxc,mysql,psql)\n"
+            << "flavor = \n"
             << "# The database to connect to\n"
             << "database = \n"
             << "# IP address to connect to, default is AF_UNIX\n"

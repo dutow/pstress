@@ -26,10 +26,9 @@ Driver script (written in BASH which integrates the workload to perform concurre
 conan build . --build=missing --settings=build_type=<Debug/Release>
 ```
 
-4. This automatically builds all favors of `pstress`, with the following executables in the `bin` directory:
-  * `pstress-ms` for MySQL
-  * `pstress-ps` for Percona Server
-  * `pstress-pxc` for Percona XtraDB Cluster
+4. This automatically builds the `pstress` executables in the `bin` directory
+
+The used libraries, including the SQL client libraries are statically linked, the binary itself is enough to run pstress.
 
 ## Initial `conan2` setup
 
@@ -47,7 +46,7 @@ After the initial build, the project can be rebuilt by either:
 
 # What options does pstress accept?
 
-First, take a quick look at ``` bin/pstress-ps --help, bin/pstress-ps --help --verbose ``` to see available modes and options.
+First, take a quick look at ``` bin/pstress --help, bin/pstress --help --verbose ``` to see available modes and options.
 
 # How to do a sample pstress run
 
@@ -55,7 +54,7 @@ pstress must be run from the directory where the executable binaries are located
 cd pstress/bin
 
 ```bash
-./pstress-ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
+./pstress --flavor=ps --tables 30 --logdir=$PWD/log --records 200 --threads 10 --seconds 100 --socket $SOCKET --insert-row 100 --update-with-cond 50 --no-delete --log-failed-queries --log-all-queries --no-encryption
 ```
 
 # How to do a sample pstress run through Driver Script

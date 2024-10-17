@@ -8,18 +8,11 @@ SET(PSTRESS_SOURCES
   sql_variant/mysql.cpp
 )
 
-FUNCTION(add_pstress_favor NAME EXT)
-  ADD_EXECUTABLE(pstress-${EXT} ${PSTRESS_SOURCES})
-  TARGET_INCLUDE_DIRECTORIES(pstress-${EXT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  INSTALL(TARGETS pstress-${EXT} DESTINATION bin)
-  TARGET_LINK_LIBRARIES(pstress-${EXT} libmysqlclient::libmysqlclient)
-  TARGET_LINK_LIBRARIES(pstress-${EXT} inih++ rapidjson)
-ENDFUNCTION()
-
-add_pstress_favor("MySQL" "mds")
-add_pstress_favor("MariaDB" "md")
-add_pstress_favor("Percona Server" "ps")
-add_pstress_favor("Percona-XtraDB-Cluster" "pxc")
+ADD_EXECUTABLE(pstress ${PSTRESS_SOURCES})
+TARGET_INCLUDE_DIRECTORIES(pstress PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+INSTALL(TARGETS pstress DESTINATION bin)
+TARGET_LINK_LIBRARIES(pstress libmysqlclient::libmysqlclient)
+TARGET_LINK_LIBRARIES(pstress inih++ rapidjson)
 
 FILE(COPY
        grammar.sql

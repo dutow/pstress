@@ -3,6 +3,7 @@
 #include "random_test.hpp"
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 
 Node::Node() {
@@ -24,12 +25,11 @@ void Node::end_node() {
 
 static bool create_log_dir() {
   std::string logdir_path(opt_string(LOGDIR));
-  struct stat st;
-  if (stat(logdir_path.c_str(), &st) != 0) {
-    if (mkdir(logdir_path.c_str(), 0755) == -1)
-      return false;
-  }
-  return true;
+
+  std::error_code ec;
+  std::filesystem::create_directories(logdir_path, ec);
+
+  return !static_cast<bool>(ec);
 }
 
 bool Node::createGeneralLog() {
@@ -43,7 +43,7 @@ bool Node::createGeneralLog() {
   }
   general_log.open(logName, std::ios::out | std::ios::trunc);
   general_log << "- PStress v" << PQVERSION << "-" << PQREVISION
-              << " compiled with " << FORK << "-" << mysql_get_client_info()
+              << " compiled with MySQL: " << mysql_get_client_info()
               << std::endl;
 
   if (!general_log.is_open()) {
@@ -73,6 +73,10 @@ int Node::startWork() {
   if (!createGeneralLog()) {
     std::cerr << "Exiting..." << std::endl;
     return 2;
+  }
+
+  if (myParams.flavor != "") {
+    options->at(Option::FLAVOR)->setString(myParams.flavor);
   }
 
   std::cout << "- Connecting to " << myParams.myName << " [" << myParams.address

@@ -226,9 +226,6 @@ int sum_of_all_options(Thd1 *thd) {
   /* for percona-server we have additional encryption type keyring */
   if (enc_type.compare("all") == 0) {
     g_encryption = {"Y", "N"};
-    if (strcmp(FORK, "Percona-Server") == 0) {
-      g_encryption.push_back("KEYRING");
-    }
   } else if (enc_type.compare("oracle") == 0) {
     g_encryption = {"Y", "N"};
     options->at(Option::ALTER_ENCRYPTION_KEY)->setInt(0);
@@ -236,7 +233,7 @@ int sum_of_all_options(Thd1 *thd) {
     g_encryption = {enc_type};
 
   /* feature not supported by oracle */
-  if (strcmp(FORK, "MySQL") == 0) {
+  if (options->at(Option::FLAVOR)->getString() == "mysql") {
     options->at(Option::ALTER_DATABASE_ENCRYPTION)->setInt(0);
     options->at(Option::NO_COLUMN_COMPRESSION)->setBool("true");
     options->at(Option::ALTER_ENCRYPTION_KEY)->setInt(0);
@@ -310,14 +307,15 @@ int sum_of_all_options(Thd1 *thd) {
       "1")
     encrypted_temp_tables = true;
 
-  if (strcmp(FORK, "Percona-Server") == 0 &&
+  if (options->at(Option::FLAVOR)->getString() ==
+          "ps" && // TODO: does pxc support this?
       mysql_read_single_value("select @@innodb_sys_tablespace_encrypt", thd) ==
           "1")
     encrypted_sys_tablelspaces = true;
 
   /* Disable GCache encryption for MS or PS, only supported in PXC-8.0 */
-  if (strcmp(FORK, "Percona-XtraDB-Cluster") != 0 ||
-      (strcmp(FORK, "Percona-XtraDB-Cluster") == 0 && server_version() < 80000))
+  if (options->at(Option::FLAVOR)->getString() == "pxc" != 0 ||
+      server_version() < 80000)
     opt_int_set(ALTER_GCACHE_MASTER_KEY, 0);
 
   /* If OS is Mac, disable table compression as hole punching is not supported
@@ -3068,6 +3066,7 @@ void save_metadata_to_file() {
   }
   writer.EndArray();
   writer.EndObject();
+
   std::ofstream of(file);
   of << sb.GetString();
 
@@ -3112,7 +3111,8 @@ void create_in_memory_data() {
 
   /* set some of tablespace encrypt */
   if (!options->at(Option::NO_ENCRYPTION)->getBool() &&
-      !(strcmp(FORK, "MySQL") == 0 && server_version() < 80000)) {
+      !((options->at(Option::FLAVOR)->getString() == "mysql") &&
+        server_version() < 80000)) {
     int i = 0;
     for (auto &tablespace : g_tablespace) {
       if (i++ % 2 == 0 &&
@@ -3519,7 +3519,6 @@ bool Thd1::run_some_query() {
   int trx_left = -1; // -1 for single trx
   int current_save_point = 0;
   while (std::chrono::system_clock::now() < end) {
-
     /* check if we need to make sql as part of existing or new trx */
     if (trx_prob > 0) {
       if (trx_left == 0)

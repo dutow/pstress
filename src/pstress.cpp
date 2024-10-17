@@ -30,6 +30,7 @@ void read_section_settings(struct workerParams *wParams, std::string secName,
                            std::string confFile) {
   INIReader reader(confFile);
   wParams->myName = secName;
+  wParams->flavor = reader.Get(secName, "flavor", "");
   wParams->socket = reader.Get(secName, "socket", "");
   wParams->address = reader.Get(secName, "address", "localhost");
   wParams->username = reader.Get(secName, "user", "test");
