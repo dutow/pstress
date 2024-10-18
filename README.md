@@ -51,7 +51,7 @@ Check run logs through tail -f nohup.out
 
 # How to build pstress ?
 
-1. Install and setup `conan2` and a recent C++ compiler with C++17 support
+1. Install and setup `conan2`, `ninja-build` and a recent C++ compiler with C++20 support
 2. Download/checkout pstress and change the working directory to it
 3. Run Conan to build the dependencies and pstress:
 
@@ -68,6 +68,8 @@ The used libraries, including the SQL client libraries are statically linked, th
 To use conan2, first install it using the instructions at https://docs.conan.io/2/installation.html
 
 And then create a default conan2 profile, using `conan profile detect`
+
+The default profile usually selects an older C++ standard, which has to be changed by editing `~/.conan2/profiles/default` and setting the `compiler.cppstd` to 20.
 
 # How to rebuild/test (for developers)
 
