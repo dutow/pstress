@@ -612,7 +612,7 @@ std::string Generated_Column::rand_value() {
 }
 
 /* prepare single quoted string for LIKE clause */
-std::string &Table::prepare_like_string(std::string &&str) {
+std::string Table::prepare_like_string(std::string str) {
   /* Check if the incoming string is empty */
   if (str.at(0) == '\'' && str.at(1) == '\'')
     str = str.insert(1, 1, '%');

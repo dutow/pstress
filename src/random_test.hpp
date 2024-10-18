@@ -183,7 +183,7 @@ struct Table {
   bool load_secondary_indexes(Thd1 *thd);
   /* execute table definition, Bulk data and then secondary index */
   bool load(Thd1 *thd);
-  static std::string &prepare_like_string(std::string &&str);
+  static std::string prepare_like_string(std::string str);
   /* methods to create table of choice */
   void AddInternalColumn(Column *column) { columns_->push_back(column); }
   void AddInternalIndex(Index *index) { indexes_->push_back(index); }
