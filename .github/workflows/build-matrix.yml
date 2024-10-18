@@ -1,0 +1,43 @@
+name: Build and test matrix
+on: 
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main]
+      
+jobs:
+  build:
+    strategy:
+      matrix:
+        ubuntu_version: [22,24]
+        build_type: [Debug,RelWithDebInfo]
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      ubuntu_version: ${{ matrix.ubuntu_version }}
+      build_type: ${{ matrix.build_type }}
+    secrets: inherit
+  release:
+    needs: build
+    runs-on: ubuntu-latest 
+    steps:
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Display artifacts
+        run: |
+          ls -Rla
+      
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        # Only try and deploy on merged code
+        if: github.ref_name == 'main' && (github.event_name == 'push' || github.event_name == 'schedule')
+        with:
+          artifacts: "release_*/*"
+          omitBody: true
+          allowUpdates: true
+          generateReleaseNotes: false
+          makeLatest: true
+          tag: "latest"
+          name: "HEAD"
+          replacesArtifacts: true
