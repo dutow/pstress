@@ -10,9 +10,12 @@ env:
       
 jobs:
   build:
-    
+    strategy:
+      matrix:
+        ubuntu_version: [22,24]
+        build_type: [Debug,RelWithDebInfo]
     name: PSTRESS build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-${{ matrix.ubuntu_version }}.04
     steps:
 
       - name: Install dependencies
@@ -26,7 +29,7 @@ jobs:
       - name: Setup conan
         run: |
           conan profile detect
-          sed -i 's/gnu14/20/g' /home/runner/.conan2/profiles/default 
+          sed -i 's/gnu../20/g' /home/runner/.conan2/profiles/default 
           cat /home/runner/.conan2/profiles/default
 
       - name: Clone repository
@@ -36,13 +39,13 @@ jobs:
 
       - name: Install/build dependencies
         run: |
-          conan install . --build=missing --settings=build_type=Debug
+          conan install . --build=missing --settings=build_type=${{ matrix.build_type }}
         working-directory: src/pstress
 
 
       - name: Build pstress
         run: |
-          conan build . --settings=build_type=Debug
+          conan build . --settings=build_type=${{ matrix.build_type }}
         working-directory: src/pstress
 
       - name: Create release directory
@@ -54,19 +57,21 @@ jobs:
       - name: Upload tgz
         uses: actions/upload-artifact@v4
         with:
-          name: pstress_debug_glibc2_35
+          name: pstress_${{ matrix.build_type }}_${{matrix.ubuntu_version }}
           path: release
 
       - name: Create tgz
         run: |
-          cd release && sudo tar -czvf ../pstress_debug_glibc2_35.tar.gz .
+          export GLIBC_VER=`ldd --version | head -n 1 | cut -d " " -f 5 | tr "." "_"`
+          mkdir tars
+          cd release && sudo tar -czvf ../tars/pstress_${{ matrix.build_type }}_glibc$GLIBC_VER.tar.gz .
 
       - name: Publish release
         uses: ncipollo/release-action@v1
         # Only try and deploy on merged code
         if: github.ref_name == 'main' && (github.event_name == 'push' || github.event_name == 'schedule')
         with:
-          artifacts: "pstress_debug_glibc2_35.tar.gz"
+          artifacts: "tars/pstress_*"
           omitBody: true
           allowUpdates: true
           generateReleaseNotes: false
