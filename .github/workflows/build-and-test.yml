@@ -48,6 +48,18 @@ jobs:
           conan build . --settings=build_type=${{ inputs.build_type }}
         working-directory: src/pstress
 
+      - name: Run CTest
+        run: |
+          ctest -VV --output-junit test-reports/ctest.xml --output-on-failure
+        working-directory: src/pstress/build/${{ inputs.build_type }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tests_${{ inputs.build_type }}_${{inputs.ubuntu_version }}
+          path: src/pstress/build/${{ inputs.build_type }}/test-reports/
+
       - name: Create release directory
         run: |
           mkdir release

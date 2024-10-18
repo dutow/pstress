@@ -4,11 +4,14 @@ PROJECT(pstress)
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 SET( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+enable_testing()
 
-FIND_PACKAGE(Threads REQUIRED)
-FIND_PACKAGE(libmysqlclient REQUIRED)
-FIND_PACKAGE(libpqxx REQUIRED)
-FIND_PACKAGE(RapidJSON REQUIRED)
+find_package(Threads REQUIRED)
+find_package(libmysqlclient REQUIRED)
+find_package(libpqxx REQUIRED)
+find_package(RapidJSON REQUIRED)
+find_package(CLI11 REQUIRED)
+find_package(Catch2 REQUIRED)
 find_package(Git)
 
 # Official release lack a required feature, keep it in 3rd party folder
@@ -19,4 +22,5 @@ INCLUDE(PQSetupCompiler)
 INCLUDE(PQCPack)
 INCLUDE(PQFindRevision)
 
-ADD_SUBDIRECTORY(src)
+add_subdirectory(src)
+add_subdirectory(test/unit)
