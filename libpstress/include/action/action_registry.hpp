@@ -39,11 +39,9 @@ public:
 
   void remove(std::string const &name);
 
-  ActionFactory const &operator[](std::string const &name) const;
+  ActionFactory operator[](std::string const &name) const;
 
-  ActionFactory &operator[](std::string const &name);
-
-  ActionFactory &get(std::string const &name);
+  ActionFactory& getReference(std::string const &name);
 
   void makeCustomSqlAction(std::string const &name, std::string const &sql,
                            std::size_t weight);

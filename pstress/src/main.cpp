@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
       &action::ActionRegistry::makeCustomSqlAction;
   action_registry_usertype["makeCustomTableSqlAction"] =
       &action::ActionRegistry::makeCustomTableSqlAction;
-  action_registry_usertype["get"] = &action::ActionRegistry::get;
+  action_registry_usertype["get"] = &action::ActionRegistry::getReference;
   action_registry_usertype["use"] = &action::ActionRegistry::use;
 
   auto postgres_usertype =

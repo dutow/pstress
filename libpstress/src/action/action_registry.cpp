@@ -98,7 +98,7 @@ void ActionRegistry::remove(std::string const &name) {
   factories.erase(it);
 }
 
-ActionFactory const &ActionRegistry::operator[](std::string const &name) const {
+ActionFactory ActionRegistry::operator[](std::string const &name) const {
   std::unique_lock<std::mutex> lk(mutex);
 
   auto it = std::find_if(factories.begin(), factories.end(),
@@ -110,9 +110,7 @@ ActionFactory const &ActionRegistry::operator[](std::string const &name) const {
   return *it;
 }
 
-ActionFactory &ActionRegistry::operator[](std::string const &name) {
-  std::unique_lock<std::mutex> lk(mutex);
-
+ActionFactory &ActionRegistry::getReference(std::string const &name) {
   auto it = std::find_if(factories.begin(), factories.end(),
                          [&](auto const &f) { return f.name == name; });
   if (it == factories.end()) {
@@ -120,10 +118,6 @@ ActionFactory &ActionRegistry::operator[](std::string const &name) {
         fmt::format("Action {} does not exists in this registy", name));
   }
   return *it;
-}
-
-ActionFactory &ActionRegistry::get(std::string const &name) {
-  return (*this)[name];
 }
 
 std::size_t ActionRegistry::size() const {
