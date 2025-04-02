@@ -148,6 +148,14 @@ int main(int argc, char **argv) {
   lua["warning"] = [](std::string const &str) { spdlog::warn(str); };
   lua["error"] = [](std::string const &str) { spdlog::error(str); };
 
+  lua["getenv"] = [](std::string const &name,
+                     std::string const &default_value) -> std::string {
+    auto env = getenv(name.c_str());
+    if (env != nullptr && strlen(env) > 0)
+      return env;
+    return default_value;
+  };
+
   lua["setup_node_pg"] = setup_node_pg;
 
   auto script = lua.load_file(argv[1]);

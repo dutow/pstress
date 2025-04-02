@@ -30,9 +30,13 @@ end
 
 -- main function executed directly by pstress
 function main()
+
+	datadir = getenv("PG_DATADIR", "datadir");
+	installdir = getenv("PG_INST", "/home/dutow/work/pg17inst/");
+
 	-- The first initializes a new datadir, the second uses an existing data dir
 	-- we need some additional helpers here like a check to see if the directory exists
-	pg = initPostgresDatadir("/home/dutow/work/pg17inst/", "datadir")
+	pg = initPostgresDatadir(installdir, datadir)
 	-- n2 = registerPostgresDatadir('/home/dutow/work/pg17inst/', 'datadir', {params})
 
 	-- Appends to the server configuration, can also overwrite existing settings, as postgres only uses the last
