@@ -35,6 +35,12 @@ if (WITH_ASAN OR WITH_UBSAN OR WITH_TSAN OR WITH_MSAN)
 	add_compile_options(-fno-omit-frame-pointer)
 endif()
 
+include(CheckCXXSymbolExists)
+CHECK_CXX_SYMBOL_EXISTS(_LIBCPP_VERSION version LIBCPP)
+if(LIBCPP)
+	add_compile_options(-fexperimental-library)
+endif()
+
 find_package(Threads REQUIRED)
 find_package(libmysqlclient REQUIRED)
 find_package(libpqxx REQUIRED)
