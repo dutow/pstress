@@ -73,7 +73,7 @@ TEST_CASE("Tables insertion into metadata can be cancelled", "[metadata]") {
   REQUIRE(meta[0] == nullptr);
 }
 
-void insert4tables(metadata::Metadata &meta) {
+inline void insert4tables(metadata::Metadata &meta) {
   {
     auto reservation = meta.createTable();
     reservation.table()->name = "foo";

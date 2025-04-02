@@ -8,9 +8,12 @@ on:
       ubuntu_version:
         required: true
         type: string
+      compiler:
+        required: true
+        type: string
 env:
-  CC: clang
-  CXX: clang++
+  CC: ${{ inputs.compiler }}
+  CXX: ${{ inputs.compiler == 'clang' && 'clang++' || 'g++' }}
       
 jobs:
   build:
@@ -59,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: tests_${{ inputs.build_type }}_${{inputs.ubuntu_version }}
+          name: tests_${{ inputs.build_type }}_${{inputs.ubuntu_version }}+${{ inputs.compiler }}
           path: src/pstress/build/${{ inputs.build_type }}/test-reports/
 
       - name: Create release directory
@@ -72,12 +75,12 @@ jobs:
         run: |
           export GLIBC_VER=`ldd --version | head -n 1 | cut -d " " -f 5 | tr "." "_"`
           mkdir tars
-          cd release && sudo tar -czvf ../tars/pstress_${{ inputs.build_type }}_glibc$GLIBC_VER.tar.gz .
+          cd release && sudo tar -czvf ../tars/pstress_${{ inputs.build_type }}_${{ inputs.compiler }}_glibc$GLIBC_VER.tar.gz .
 
       - name: Upload tgz
         uses: actions/upload-artifact@v4
         with:
-          name: release_${{ inputs.build_type }}_${{inputs.ubuntu_version }}
+          name: release_${{ inputs.build_type }}_${{inputs.ubuntu_version }}_${{ inputs.compiler }}
           path: tars
 
   test:
@@ -93,7 +96,7 @@ jobs:
       - name: Get artifact
         uses: actions/download-artifact@v4
         with:
-          name: release_${{ inputs.build_type }}_${{inputs.ubuntu_version }}
+          name: release_${{ inputs.build_type }}_${{inputs.ubuntu_version }}_${{ inputs.compiler }}
           path: pstress/
 
       - name: Setup MySQL

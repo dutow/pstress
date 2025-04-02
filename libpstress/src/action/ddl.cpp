@@ -27,6 +27,7 @@ std::size_t randomColumnLength(ps_random &rand, ColumnType type) {
   case ColumnType::REAL:
     return 0;
   }
+  return 0;
 }
 
 Column randomColumn(ps_random &rand, bool forceSerial = false) {
@@ -172,6 +173,7 @@ void AlterTable::execute(Metadata &metaCtx, ps_random &rand,
             fmt::format("ADD COLUMN {}", columnDefinition(column)));
         // we can't accidentally modify / drop new columns in the same statement
         newColumns.push_back(column);
+        break;
       }
       case AlterSubcommand::dropColumn: {
         if (table->columns.size() < 3)

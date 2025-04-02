@@ -26,6 +26,7 @@ std::string generate_value(metadata::Column const &col, ps_random &rand) {
   case metadata::ColumnType::CHAR:
     return std::string("'") + rand.random_string(0, col.length) + "'";
   }
+  return "";
 }
 }; // namespace
 

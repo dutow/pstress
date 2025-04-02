@@ -8,7 +8,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
 
-std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
+inline std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
   const std::string host = table.get_or("host", std::string("localhost"));
   const std::uint16_t port = table.get_or("port", 5432);
   const std::string user = table.get_or("user", std::string("postgres"));
@@ -33,7 +33,7 @@ std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
       }));
 }
 
-void node_init(Node &self, sol::protected_function init_callback) {
+inline void node_init(Node &self, sol::protected_function init_callback) {
   auto worker = self.make_worker("Initialization");
 
   sol::protected_function_result result = init_callback(worker.get());
@@ -45,7 +45,7 @@ void node_init(Node &self, sol::protected_function init_callback) {
   }
 }
 
-auto init_random_workload(Node &self, sol::table const &table) {
+inline auto init_random_workload(Node &self, sol::table const &table) {
   const std::uint16_t repeat_times = table.get_or("repeat_times", 1);
   const std::uint16_t run_seconds = table.get_or("run_seconds", 10);
   const std::uint16_t worker_count = table.get_or("worker_count", 5);
