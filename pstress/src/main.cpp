@@ -6,6 +6,7 @@
 #include "process/postgres.hpp"
 #include "workload.hpp"
 #include <boost/dll/runtime_symbol_info.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
   const std::string host = table.get_or("host", std::string("localhost"));
@@ -15,7 +16,7 @@ std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
   const std::string database = table.get_or("database", std::string("pstress"));
   auto on_connect_lua = table.get<sol::protected_function>("on_connect");
 
-  spdlog::info("Host: {}, port: {}", host, port);
+  spdlog::info("Setting up PG node on host: '{}', port: {}", host, port);
 
   return std::make_unique<Node>(SqlFactory(
       sql_variant::ServerParams{database, host, "", user, password, 0, port},
@@ -138,7 +139,7 @@ int main(int argc, char **argv) {
 
   lua["initPostgresDatadir"] = [](std::string const &installDir,
                                   std::string const &dataDir) {
-    return std::make_unique<process::Postgres>(true, installDir, dataDir);
+    return std::make_unique<process::Postgres>(true, boost::replace_all_copy(dataDir, "/", "-"), installDir, dataDir);
   };
 
   lua["debug"] = [](std::string const &str) { spdlog::debug(str); };

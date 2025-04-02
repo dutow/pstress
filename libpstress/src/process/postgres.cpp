@@ -5,6 +5,7 @@
 #include <boost/process/v1/io.hpp>
 #include <fstream>
 #include <memory>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
 namespace {
@@ -21,7 +22,7 @@ struct CommandRunner : public std::enable_shared_from_this<CommandRunner> {
   boost::process::ipstream outerr;
   boost::process::child child;
   std::string commandLine;
-  std::jthread logger;
+  std::jthread loggerThd;
 
 private:
   template <typename... Ts>
@@ -32,19 +33,19 @@ private:
         commandLine(
             boost::algorithm::join(std::vector<std::string>{args...}, " ")) {}
 
-  int finishRun() {
-    logger = std::jthread([&]() {
+  int finishRun(std::shared_ptr<spdlog::logger> logger) {
+    loggerThd = std::jthread([&, logger]() {
       auto self_ptr = shared_from_this();
 
-      spdlog::info("Executing command {}", commandLine);
+      logger->info("Executing command {}", commandLine);
       std::string line;
 
       while (child.running() && std::getline(outerr, line) && !line.empty()) {
-        spdlog::info(">> {}", line);
+        logger->info(">> {}", line);
       }
     });
 
-    logger.detach();
+    loggerThd.detach();
 
     try {
       // TODO: how to solve this properly? If a process is too quick, we get an
@@ -57,44 +58,49 @@ private:
   }
 
 public:
-  template <typename... Ts> static int execute(Ts... args) {
+  template <typename... Ts>
+  static int execute(std::shared_ptr<spdlog::logger> const &logger,
+                     Ts... args) {
     std::shared_ptr<CommandRunner> ptr(new CommandRunner(args...));
-    return ptr->finishRun();
+    return ptr->finishRun(logger);
   }
 };
 
-int runPgCtl(std::string const &installDir, std::string const &dataDir,
+int runPgCtl(std::shared_ptr<spdlog::logger> const &logger,
+             std::string const &installDir, std::string const &dataDir,
              std::string const &subCommand) {
   boost::process::ipstream outerr;
-  return CommandRunner::execute(fmt::format("{}/bin/pg_ctl", installDir), "-D",
+  return CommandRunner::execute(logger,
+                                fmt::format("{}/bin/pg_ctl", installDir), "-D",
                                 dataDir, subCommand);
 }
 } // namespace
 
 namespace process {
 
-Postgres::Postgres(bool initDatadir, std::string const &installDir,
-                   std::string const &dataDir)
+Postgres::Postgres(bool initDatadir, std::string const &logname,
+                   std::string const &installDir, std::string const &dataDir)
+    : installDir(installDir), dataDir(dataDir),
+      logger(
+          spdlog::basic_logger_st(fmt::format("pg-{}", logname),
+                                  fmt::format("logs/pg-{}.log", logname))) {
 
-    : installDir(installDir), dataDir(dataDir) {
+  spdlog::info("Using PG install directory '{}' with datadir '{}'", installDir,
+               dataDir);
+
   if (!std::filesystem::is_directory(this->installDir)) {
     throw std::runtime_error(fmt::format(
         "Specified install directory '{}' is not a directory.", installDir));
   }
   if (initDatadir) {
+    spdlog::info("Initializing data directory '{}'", dataDir);
     if (std::filesystem::exists(this->dataDir)) {
       throw std::runtime_error(fmt::format(
           "Data directory '{}' already exists, can't initialize.", dataDir));
     }
 
-    boost::process::ipstream outerr;
-    int result = boost::process::system(
-        fmt::format("{}/bin/initdb", installDir), "-D", dataDir,
-        (boost::process::std_out & boost::process::std_err) > outerr);
-
-    for (std::string line; std::getline(outerr, line);) {
-      spdlog::info("pg initdb: {}", line);
-    }
+    int result = CommandRunner::execute(
+        logger, fmt::format("{}/bin/initdb", installDir), "-D", dataDir);
 
     if (result != 0) {
       throw std::runtime_error(fmt::format(
@@ -109,14 +115,16 @@ Postgres::Postgres(bool initDatadir, std::string const &installDir,
   }
 }
 
-bool Postgres::start() { return runPgCtl(installDir, dataDir, "start") == 0; }
+bool Postgres::start() {
+  return runPgCtl(logger, installDir, dataDir, "start") == 0;
+}
 
 bool Postgres::restart() {
-  return runPgCtl(installDir, dataDir, "restart") == 0;
+  return runPgCtl(logger, installDir, dataDir, "restart") == 0;
 }
 
 void Postgres::stop() {
-  int result = runPgCtl(installDir, dataDir, "stop");
+  int result = runPgCtl(logger, installDir, dataDir, "stop");
   if (result != 0) {
     throw std::runtime_error(fmt::format(
         "Pg_ctl stop failed with data directory '{}' and install dir {}.",
@@ -138,12 +146,12 @@ void Postgres::add_config(params_t additionalConfig) {
 
 bool Postgres::createdb(std::string const &name) {
   return CommandRunner::execute(
-      fmt::format("{}/bin/createdb", installDir.string()), name);
+      logger, fmt::format("{}/bin/createdb", installDir.string()), name);
 }
 
 bool Postgres::dropdb(std::string const &name) {
   return CommandRunner::execute(
-      fmt::format("{}/bin/dropdb", installDir.string()), name);
+      logger, fmt::format("{}/bin/dropdb", installDir.string()), name);
 }
 
 } // namespace process

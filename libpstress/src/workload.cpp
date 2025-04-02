@@ -51,6 +51,9 @@ RandomWorker::RandomWorker(std::string const &name, logged_sql_ptr sql_conn,
 RandomWorker::~RandomWorker() { join(); }
 
 void RandomWorker::run_thread(std::size_t duration_in_seconds) {
+  spdlog::info("Worker {} starting, resetting statistics", name);
+  successfulActions = 0;
+  failedActions = 0;
   if (thread.joinable()) {
     spdlog::error("Error: thread is already running");
     return;

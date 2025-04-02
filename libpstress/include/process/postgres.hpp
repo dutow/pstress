@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 namespace process {
 
@@ -11,7 +12,7 @@ class Postgres {
 public:
   using params_t = std::unordered_map<std::string, std::string>;
 
-  Postgres(bool initDatadir, std::string const &installDir,
+  Postgres(bool initDatadir, std::string const& logname, std::string const &installDir,
            std::string const &dataDir);
 
   void add_config(params_t additionalConfig);
@@ -31,6 +32,8 @@ public:
 private:
   std::filesystem::path installDir;
   std::filesystem::path dataDir;
+
+  std::shared_ptr<spdlog::logger> logger;
 };
 
 } // namespace process
