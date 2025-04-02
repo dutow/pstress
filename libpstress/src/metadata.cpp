@@ -11,7 +11,7 @@ Metadata::Reservation::Reservation()
 
 Metadata::Reservation::Reservation(Metadata *storage, Metadata::table_t table,
                                    bool drop, std::size_t index,
-                                   std::unique_lock<std::mutex> &&lock)
+                                   std::unique_lock<std::shared_mutex> &&lock)
     : storage_(storage), table_(table), drop_(drop), index_(index),
       lock_(std::move(lock)) {
   //
@@ -64,7 +64,7 @@ void Metadata::Reservation::complete() {
     // there. It is safe to update and release the lock, but DROP might need to
     // defragment.
     if (!drop_) { // ALTER and other modification DDL statements
-      storage_->safe_ptr_overwrite(index_, table_);
+      storage_->data_.tables[index_] = table_;
       lock_.unlock();
     } else { // DROP
       bool completed = false;
@@ -77,7 +77,7 @@ void Metadata::Reservation::complete() {
           // this right now. This is mitigated by CREATE locking the last
           // record. As we currently hold that, it has to wait. It is safe to
           // just delete and release the lock.
-          storage_->safe_ptr_overwrite(index_, nullptr);
+          storage_->data_.tables[index_] = nullptr;
           // tableCount is safe to decrease here:
           // * Concurrent DROP will find the new last record and lock it
           // * Concurrent CREATE will find the new last record, and will also
@@ -93,7 +93,7 @@ void Metadata::Reservation::complete() {
           // no holes in the table.
 
           const auto lastIndex = storage_->size() - 1;
-          std::unique_lock<std::mutex> innerLock(
+          std::unique_lock<std::shared_mutex> innerLock(
               storage_->data_.tableLocks[lastIndex]);
           if (storage_->data_.tables[lastIndex] != nullptr &&
               lastIndex == storage_->size() - 1) {
@@ -102,8 +102,7 @@ void Metadata::Reservation::complete() {
             // locked. It is safe to move and empty it, CREATE will handle the
             // conflict.
 
-            storage_->safe_ptr_overwrite(index_,
-                                         storage_->data_.tables[lastIndex]);
+            storage_->data_.tables[index_] = storage_->data_.tables[lastIndex];
             lock_.unlock();
             // Similarly, it is safe to decrease tableCount here, for the same
             // reasoning as above.
@@ -128,7 +127,7 @@ void Metadata::Reservation::complete() {
 
     bool completed = false;
     while (!completed) {
-      std::unique_lock<std::mutex> outerLock;
+      std::unique_lock<std::shared_mutex> outerLock;
       const auto nextIndex = storage_->size();
       if (storage_->size() == 0) {
         // empty container. No alter/dro should happen, just lock the first row
@@ -136,8 +135,8 @@ void Metadata::Reservation::complete() {
       } else {
         // Try to lock the last item first
         const auto lastIndex = nextIndex - 1;
-        outerLock =
-            std::unique_lock<std::mutex>(storage_->data_.tableLocks[lastIndex]);
+        outerLock = std::unique_lock<std::shared_mutex>(
+            storage_->data_.tableLocks[lastIndex]);
 
         if (storage_->data_.tables[lastIndex] == nullptr ||
             nextIndex != storage_->size()) {
@@ -158,12 +157,12 @@ void Metadata::Reservation::complete() {
 
       // TODO: debug assert about overindexing
 
-      std::scoped_lock<std::mutex> innerLock(
+      std::scoped_lock<std::shared_mutex> innerLock(
           storage_->data_.tableLocks[nextIndex]);
 
       // TODO: debug assert about the field being nullptr in the vector
 
-      storage_->safe_ptr_overwrite(nextIndex, table_);
+      storage_->data_.tables[nextIndex] = table_;
       // we hold the lock both for the current last item, and the one after it
       // increasing tableCount here is safe.
       // Also since we already inserted the new item, it will be correctly
@@ -217,7 +216,7 @@ Metadata::Reservation Metadata::createTable() {
 
 Metadata::Reservation Metadata::alterTable(index_t idx) {
   // assert: idx < limits::maximum_table_count
-  std::unique_lock<std::mutex> mtx(data_.tableLocks[idx]);
+  std::unique_lock<std::shared_mutex> mtx(data_.tableLocks[idx]);
   auto table = data_.tables[idx];
   if (table == nullptr) {
     return Reservation();
@@ -228,7 +227,7 @@ Metadata::Reservation Metadata::alterTable(index_t idx) {
 
 Metadata::Reservation Metadata::dropTable(index_t idx) {
   // assert: idx < limits::maximum_table_count
-  std::unique_lock<std::mutex> mtx(data_.tableLocks[idx]);
+  std::unique_lock<std::shared_mutex> mtx(data_.tableLocks[idx]);
   auto table = data_.tables[idx];
   if (table == nullptr) {
     return Reservation();
@@ -238,27 +237,10 @@ Metadata::Reservation Metadata::dropTable(index_t idx) {
 
 Metadata::index_t Metadata::size() const { return data_.tableCount; }
 
-table_cptr Metadata::operator[](Metadata::index_t idx) {
+table_cptr Metadata::operator[](Metadata::index_t idx) const {
   // assert: idx < limits::maximum_table_count
+  std::shared_lock<std::shared_mutex> mtx(data_.tableLocks[idx]);
   return data_.tables[idx];
-}
-
-void Metadata::safe_ptr_overwrite(std::size_t idx, table_t newTable) {
-  /* It is important to only overwrite elements in the data_ array using this
-   * method. shared_ptr is thread safe, but the sequence of (shared_ptr
-   * destruction, array change) is not. If we simply do tables[idx] =
-   * new_shared_ptr without getting a local reference to the current object
-   * first, it is possible that the array operator= will call the destructor of
-   * the shared_ptr, and it does this call before replacing it with the new
-   * object. This means that concurrent requests can possibly get a reference to
-   * a shared_ptr while it is being destroyed, resulting in heap-use-after-free
-   * and/or double-free errors. The solution is simple: get a local reference
-   * first, and overwrite the array element after, ensuring that if we do
-   * destroy the object, we do so after the array already points to the new
-   * object.
-   */
-  auto copy = data_.tables[idx];
-  data_.tables[idx] = newTable;
 }
 
 } // namespace metadata

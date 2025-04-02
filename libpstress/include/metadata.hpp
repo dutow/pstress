@@ -7,10 +7,13 @@
 #include <exception>
 #include <limits>
 #include <mutex>
+#include <shared_mutex>
 
 /*
   Metadata API
   ===============
+
+  TODO: this api is now a bit misused
 
   Purpose
   -------
@@ -289,7 +292,7 @@ public:
 
   private:
     Reservation(Metadata *storage, table_t table, bool drop_, std::size_t index,
-                std::unique_lock<std::mutex> &&lock);
+                std::unique_lock<std::shared_mutex> &&lock);
 
     Metadata *storage_;
     table_t table_;
@@ -301,7 +304,7 @@ public:
      If the code explicitly calls complete(), index can
      be safely read and used after. */
     std::size_t index_;
-    std::unique_lock<std::mutex> lock_;
+    std::unique_lock<std::shared_mutex> lock_;
 
     friend class Metadata;
   };
@@ -335,18 +338,17 @@ public:
   index_t size() const;
 
   // Might return nullptr. It is very unlikely, but still needs to be checked
-  table_cptr operator[](index_t idx);
+  table_cptr operator[](index_t idx) const;
 
 private:
   struct InternalData {
     container_t tables;
-    std::array<std::mutex, limits::maximum_table_count> tableLocks;
+    mutable std::array<std::shared_mutex, limits::maximum_table_count>
+        tableLocks;
     std::array<index_t, limits::maximum_table_count> movedToMap;
     std::atomic<std::size_t> tableCount;
     std::atomic<std::size_t> reservedSize;
   } data_;
-
-  void safe_ptr_overwrite(std::size_t idx, table_t newTable);
 };
 
 } // namespace metadata

@@ -53,11 +53,15 @@ namespace action {
 
 ActionRegistry::ActionRegistry() {};
 
-ActionRegistry::ActionRegistry(ActionRegistry const &o)
-    : factories(o.factories) {};
+ActionRegistry::ActionRegistry(ActionRegistry const &o) {
+  std::unique_lock<std::mutex> lk(o.mutex);
+  factories = o.factories;
+};
 
-ActionRegistry::ActionRegistry(ActionRegistry &&o)
-    : factories(std::move(o.factories)) {};
+ActionRegistry::ActionRegistry(ActionRegistry &&o) {
+  std::unique_lock<std::mutex> lk(o.mutex);
+  factories = std::move(o.factories);
+};
 
 ActionRegistry &ActionRegistry::operator=(ActionRegistry const &o) {
   factories = o.factories;
@@ -65,6 +69,7 @@ ActionRegistry &ActionRegistry::operator=(ActionRegistry const &o) {
 }
 
 ActionRegistry &ActionRegistry::operator=(ActionRegistry &&o) {
+  std::unique_lock<std::mutex> lk(o.mutex);
   factories = std::move(o.factories);
   return *this;
 }
@@ -111,12 +116,15 @@ ActionFactory ActionRegistry::operator[](std::string const &name) const {
 }
 
 ActionFactory &ActionRegistry::getReference(std::string const &name) {
+  std::unique_lock<std::mutex> lk(mutex);
+
   auto it = std::find_if(factories.begin(), factories.end(),
                          [&](auto const &f) { return f.name == name; });
   if (it == factories.end()) {
     throw ActionException(
         fmt::format("Action {} does not exists in this registy", name));
   }
+  // TODO issue: lock no longer held after return, detected by tsan
   return *it;
 }
 

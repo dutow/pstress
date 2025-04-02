@@ -41,7 +41,7 @@ public:
 
   ActionFactory operator[](std::string const &name) const;
 
-  ActionFactory& getReference(std::string const &name);
+  ActionFactory &getReference(std::string const &name);
 
   void makeCustomSqlAction(std::string const &name, std::string const &sql,
                            std::size_t weight);
