@@ -42,3 +42,22 @@ After the initial build, the project can be rebuilt by either:␍
 ␍
 * Executing `cmake --build --target install --preset conan-debug` (or `conan-release`) in the pstress directory␍
 * Going to the `build/<Debug/Release>` directory, and executing `ninja install` or `cmake --build . --target install`
+
+## How to build with sanitizers
+
+Sanitizers are options to the `conan build` command, for example:
+
+```
+conan build . --build=missing --settings=build_type=<Debug/Release> -o '&:asan=True' -o '&:ubsan=True'
+```
+
+builds pstress with address and undefined behavior sanitizers.
+
+All sanitizer options:
+
+* asan
+* ubsan
+* tsan
+* msan
+
+Note: `tsan` and `asan` can't be used together, and `tsan` shows false positives because of missing suppressions, that's a TODO.

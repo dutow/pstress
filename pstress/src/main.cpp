@@ -5,8 +5,8 @@
 #include "action/action_registry.hpp"
 #include "process/postgres.hpp"
 #include "workload.hpp"
-#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 std::unique_ptr<Node> setup_node_pg(sol::table const &table) {
   const std::string host = table.get_or("host", std::string("localhost"));
@@ -139,7 +139,8 @@ int main(int argc, char **argv) {
 
   lua["initPostgresDatadir"] = [](std::string const &installDir,
                                   std::string const &dataDir) {
-    return std::make_unique<process::Postgres>(true, boost::replace_all_copy(dataDir, "/", "-"), installDir, dataDir);
+    return std::make_unique<process::Postgres>(
+        true, boost::replace_all_copy(dataDir, "/", "-"), installDir, dataDir);
   };
 
   lua["debug"] = [](std::string const &str) { spdlog::debug(str); };

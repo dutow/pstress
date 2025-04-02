@@ -31,14 +31,13 @@ void CustomSql::execute(metadata::Metadata &metaCtx, ps_random &rand,
   connection->executeQuery(statementCopy).maybeThrow();
 }
 
-std::string CustomSql::doInject(metadata::Metadata const &metaCtx,
-                                ps_random &rand,
+std::string CustomSql::doInject(metadata::Metadata &metaCtx, ps_random &rand,
                                 std::string const &injectionPoint) const {
   if (injectionPoint == "table") {
     metadata::table_cptr table;
     while (table == NULL) {
       // select a random table from metadata
-      std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size());
+      std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size() - 1);
       table = metaCtx[idx];
     }
     return table->name;

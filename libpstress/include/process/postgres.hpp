@@ -2,9 +2,9 @@
 #pragma once
 
 #include <filesystem>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
-#include <spdlog/spdlog.h>
 
 namespace process {
 
@@ -12,8 +12,8 @@ class Postgres {
 public:
   using params_t = std::unordered_map<std::string, std::string>;
 
-  Postgres(bool initDatadir, std::string const& logname, std::string const &installDir,
-           std::string const &dataDir);
+  Postgres(bool initDatadir, std::string const &logname,
+           std::string const &installDir, std::string const &dataDir);
 
   void add_config(params_t additionalConfig);
 

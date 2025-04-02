@@ -93,7 +93,7 @@ function main()
 	-- add a custom action to worker 4. This is not table based
 	t1:worker(4):possibleActions():makeCustomSqlAction("checkpoint", "CHECKPOINT;", 1)
 
-	for workloadIdx = 1, 5 do
+	for workloadIdx = 1, 50 do
 		-- Start the workload
 		t1:run()
 

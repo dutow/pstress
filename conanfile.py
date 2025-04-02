@@ -1,9 +1,23 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout, CMakeToolchain, CMakeDeps
 
-class SimplicityRecipe(ConanFile):
+class StormweaverRecipe(ConanFile):
 
     settings = "os", "compiler", "build_type", "arch"
+
+    options = {
+        "asan": [ True, False ],
+        "ubsan": [ True, False ],
+        "tsan": [ True, False ],
+        "msan": [ True, False ],
+    }
+
+    default_options = {
+        "asan": False,
+        "ubsan": False,
+        "tsan": False,
+        "msan": False,
+    }
 
     def requirements(self):
         self.requires("boost/1.86.0")
@@ -19,6 +33,9 @@ class SimplicityRecipe(ConanFile):
         
     def generate(self):
         tc = CMakeToolchain(self, generator='Ninja')
+        tc.cache_variables["WITH_ASAN"] = self.options.asan
+        tc.cache_variables["WITH_UBSAN"] = self.options.ubsan
+        tc.cache_variables["WITH_TSAN"] = self.options.tsan
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()

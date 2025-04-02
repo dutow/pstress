@@ -26,7 +26,7 @@ private:
   std::string sqlStatement;
   inject_t injectParameters;
 
-  std::string doInject(metadata::Metadata const &metaCtx, ps_random &rand,
+  std::string doInject(metadata::Metadata &metaCtx, ps_random &rand,
                        std::string const &injectionPoint) const;
 };
 

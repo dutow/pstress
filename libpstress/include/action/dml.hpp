@@ -9,7 +9,7 @@ struct DmlConfig {};
 
 class InsertData : public Action {
 public:
-  InsertData(DmlConfig const &config, metadata::table_cptr const &table,
+  InsertData(DmlConfig const &config, metadata::table_cptr table,
              std::size_t rows);
   InsertData(DmlConfig const &config, std::size_t rows);
 

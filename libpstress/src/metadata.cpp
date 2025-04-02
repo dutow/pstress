@@ -64,7 +64,7 @@ void Metadata::Reservation::complete() {
     // there. It is safe to update and release the lock, but DROP might need to
     // defragment.
     if (!drop_) { // ALTER and other modification DDL statements
-      storage_->data_.tables[index_] = table_;
+      storage_->safe_ptr_overwrite(index_, table_);
       lock_.unlock();
     } else { // DROP
       bool completed = false;
@@ -77,7 +77,7 @@ void Metadata::Reservation::complete() {
           // this right now. This is mitigated by CREATE locking the last
           // record. As we currently hold that, it has to wait. It is safe to
           // just delete and release the lock.
-          storage_->data_.tables[index_] = nullptr;
+          storage_->safe_ptr_overwrite(index_, nullptr);
           // tableCount is safe to decrease here:
           // * Concurrent DROP will find the new last record and lock it
           // * Concurrent CREATE will find the new last record, and will also
@@ -102,7 +102,8 @@ void Metadata::Reservation::complete() {
             // locked. It is safe to move and empty it, CREATE will handle the
             // conflict.
 
-            storage_->data_.tables[index_] = storage_->data_.tables[lastIndex];
+            storage_->safe_ptr_overwrite(index_,
+                                         storage_->data_.tables[lastIndex]);
             lock_.unlock();
             // Similarly, it is safe to decrease tableCount here, for the same
             // reasoning as above.
@@ -162,7 +163,7 @@ void Metadata::Reservation::complete() {
 
       // TODO: debug assert about the field being nullptr in the vector
 
-      storage_->data_.tables[nextIndex] = table_;
+      storage_->safe_ptr_overwrite(nextIndex, table_);
       // we hold the lock both for the current last item, and the one after it
       // increasing tableCount here is safe.
       // Also since we already inserted the new item, it will be correctly
@@ -237,11 +238,27 @@ Metadata::Reservation Metadata::dropTable(index_t idx) {
 
 Metadata::index_t Metadata::size() const { return data_.tableCount; }
 
-Metadata::container_t const &Metadata::data() { return data_.tables; }
-
-Metadata::table_t const &Metadata::operator[](Metadata::index_t idx) const {
+table_cptr Metadata::operator[](Metadata::index_t idx) {
   // assert: idx < limits::maximum_table_count
   return data_.tables[idx];
+}
+
+void Metadata::safe_ptr_overwrite(std::size_t idx, table_t newTable) {
+  /* It is important to only overwrite elements in the data_ array using this
+   * method. shared_ptr is thread safe, but the sequence of (shared_ptr
+   * destruction, array change) is not. If we simply do tables[idx] =
+   * new_shared_ptr without getting a local reference to the current object
+   * first, it is possible that the array operator= will call the destructor of
+   * the shared_ptr, and it does this call before replacing it with the new
+   * object. This means that concurrent requests can possibly get a reference to
+   * a shared_ptr while it is being destroyed, resulting in heap-use-after-free
+   * and/or double-free errors. The solution is simple: get a local reference
+   * first, and overwrite the array element after, ensuring that if we do
+   * destroy the object, we do so after the array already points to the new
+   * object.
+   */
+  auto copy = data_.tables[idx];
+  data_.tables[idx] = newTable;
 }
 
 } // namespace metadata

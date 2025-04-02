@@ -334,10 +334,8 @@ public:
 
   index_t size() const;
 
-  container_t const &data();
-
   // Might return nullptr. It is very unlikely, but still needs to be checked
-  table_t const &operator[](index_t idx) const;
+  table_cptr operator[](index_t idx);
 
 private:
   struct InternalData {
@@ -347,6 +345,8 @@ private:
     std::atomic<std::size_t> tableCount;
     std::atomic<std::size_t> reservedSize;
   } data_;
+
+  void safe_ptr_overwrite(std::size_t idx, table_t newTable);
 };
 
 } // namespace metadata

@@ -32,8 +32,8 @@ std::string generate_value(metadata::Column const &col, ps_random &rand) {
 InsertData::InsertData(DmlConfig const &config, std::size_t rows)
     : config(config), table(nullptr), rows(rows) {}
 
-InsertData::InsertData(DmlConfig const &config,
-                       metadata::table_cptr const &table, std::size_t rows)
+InsertData::InsertData(DmlConfig const &config, metadata::table_cptr table,
+                       std::size_t rows)
     : config(config), table(table), rows(rows) {}
 
 void InsertData::execute(Metadata &metaCtx, ps_random &rand,
@@ -46,7 +46,7 @@ void InsertData::execute(Metadata &metaCtx, ps_random &rand,
     return; // TODO: log
   while (table == NULL) {
     // select a random table from metadata
-    std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size());
+    std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size() - 1);
     table = metaCtx[idx];
   }
 

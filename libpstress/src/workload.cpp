@@ -28,7 +28,8 @@ void Worker::create_random_tables(std::size_t count) {
 }
 
 void Worker::generate_initial_data() {
-  for (auto const &table : metadata->data()) {
+  for (std::size_t idx = 0; idx < metadata->size(); ++idx) {
+    auto table = (*metadata)[idx];
     if (table) {
       for (std::size_t i = 0; i < 10; ++i) {
         action::InsertData inserter(config.dml, table, 100);

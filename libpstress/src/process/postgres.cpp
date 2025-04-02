@@ -59,14 +59,13 @@ private:
 
 public:
   template <typename... Ts>
-  static int execute(std::shared_ptr<spdlog::logger> const &logger,
-                     Ts... args) {
+  static int execute(std::shared_ptr<spdlog::logger> logger, Ts... args) {
     std::shared_ptr<CommandRunner> ptr(new CommandRunner(args...));
     return ptr->finishRun(logger);
   }
 };
 
-int runPgCtl(std::shared_ptr<spdlog::logger> const &logger,
+int runPgCtl(std::shared_ptr<spdlog::logger> logger,
              std::string const &installDir, std::string const &dataDir,
              std::string const &subCommand) {
   boost::process::ipstream outerr;
@@ -81,9 +80,8 @@ namespace process {
 Postgres::Postgres(bool initDatadir, std::string const &logname,
                    std::string const &installDir, std::string const &dataDir)
     : installDir(installDir), dataDir(dataDir),
-      logger(
-          spdlog::basic_logger_st(fmt::format("pg-{}", logname),
-                                  fmt::format("logs/pg-{}.log", logname))) {
+      logger(spdlog::basic_logger_st(fmt::format("pg-{}", logname),
+                                     fmt::format("logs/pg-{}.log", logname))) {
 
   spdlog::info("Using PG install directory '{}' with datadir '{}'", installDir,
                dataDir);
