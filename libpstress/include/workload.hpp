@@ -76,6 +76,8 @@ public:
   std::unique_ptr<sql_variant::LoggedSQL>
   connect(std::string const &connection_name) const;
 
+  sql_variant::ServerParams const &params() const;
+
 private:
   // postgres / mysql selector
   sql_variant::ServerParams sql_params;
@@ -115,6 +117,8 @@ public:
   std::unique_ptr<Worker> make_worker(std::string const &name);
 
   action::ActionRegistry &possibleActions();
+
+  sql_variant::ServerParams const &sql_params() const;
 
 private:
   SqlFactory sql_factory;

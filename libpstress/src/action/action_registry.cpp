@@ -13,27 +13,27 @@ ActionFactory createNormalTable{"create_normal_table",
                                       config.ddl,
                                       metadata::Table::Type::normal);
                                 },
-                                1};
+                                100};
 
 ActionFactory dropTable{"drop_table",
                         [](AllConfig const &config) {
                           return std::make_unique<DropTable>(config.ddl);
                         },
-                        1};
+                        100};
 
 ActionFactory alterTable{"alter_table",
                          [](AllConfig const &config) {
                            return std::make_unique<AlterTable>(
                                config.ddl, BitFlags<AlterSubcommand>::AllSet());
                          },
-                         1};
+                         100};
 
 ActionFactory insertSomeData{"insert_some_data",
                              [](AllConfig const &config) {
                                return std::make_unique<InsertData>(config.dml,
                                                                    10);
                              },
-                             10};
+                             1000};
 
 ActionRegistry initializeDefaultRegisty() {
   ActionRegistry ar;

@@ -30,9 +30,8 @@ end
 
 -- main function executed directly by pstress
 function main()
-
-	datadir = getenv("PG_DATADIR", "datadir");
-	installdir = getenv("PG_INST", "/home/dutow/work/pg17inst/");
+	datadir = getenv("PG_DATADIR", "datadir")
+	installdir = getenv("PG_INST", "/home/dutow/work/pg17inst/")
 
 	-- The first initializes a new datadir, the second uses an existing data dir
 	-- we need some additional helpers here like a check to see if the directory exists
@@ -111,10 +110,10 @@ function main()
 		t1:wait_completion()
 
 		-- restart the server (TODO: kill9 not yet implemented)
-		pg:restart()
+		pg:restart(10)
 
 		t1:reconnect_workers()
 	end
 
-	pg:stop()
+	pg:stop(10)
 end

@@ -135,12 +135,24 @@ int main(int argc, char **argv) {
   postgres_usertype["kill9"] = &process::Postgres::kill9;
   postgres_usertype["createdb"] = &process::Postgres::createdb;
   postgres_usertype["dropdb"] = &process::Postgres::dropdb;
+  postgres_usertype["is_running"] = &process::Postgres::is_running;
+  postgres_usertype["is_ready"] = &process::Postgres::is_ready;
+  postgres_usertype["wait_ready"] = &process::Postgres::wait_ready;
   postgres_usertype["add_config"] = &process::Postgres::add_config;
+  postgres_usertype["add_hba"] = &process::Postgres::add_hba;
 
   lua["initPostgresDatadir"] = [](std::string const &installDir,
                                   std::string const &dataDir) {
     return std::make_unique<process::Postgres>(
         true, boost::replace_all_copy(dataDir, "/", "-"), installDir, dataDir);
+  };
+
+  lua["initBasebackupFrom"] = [](std::string const &installDir,
+                                 std::string const &dataDir, Node const &node,
+                                 sol::variadic_args va) {
+    return std::make_unique<process::Postgres>(
+        boost::replace_all_copy(dataDir, "/", "-"), installDir, dataDir,
+        node.sql_params(), std::vector<std::string>(va.begin(), va.end()));
   };
 
   lua["debug"] = [](std::string const &str) { spdlog::debug(str); };
@@ -158,7 +170,24 @@ int main(int argc, char **argv) {
 
   lua["setup_node_pg"] = setup_node_pg;
 
+  lua["fs"] = sol::table();
+
+  /*lua["fs"]["is_directory"] = [](std::string const &path) {
+    return std::filesystem::is_directory(path);
+  };
+  lua["fs"]["copy_directory"] = [](std::string const &from,
+                                   std::string const &to) {
+    return std::filesystem::copy(from, to,
+                                 std::filesystem::copy_options::recursive);
+  };*/
+
   auto script = lua.load_file(argv[1]);
+
+  if (!script.valid()) {
+    sol::error err = script;
+    spdlog::error("Scenario script loading failed: {}", err.what());
+    return 5;
+  }
 
   sol::protected_function_result result = script();
 

@@ -167,3 +167,11 @@ SqlFactory::connect(std::string const &connection_name) const {
 }
 
 action::ActionRegistry &Node::possibleActions() { return actions; }
+
+sql_variant::ServerParams const &SqlFactory::params() const {
+  return sql_params;
+}
+
+sql_variant::ServerParams const &Node::sql_params() const {
+  return sql_factory.params();
+}
