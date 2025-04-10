@@ -30,6 +30,8 @@ class StormweaverRecipe(ConanFile):
         self.requires("sol2/3.5.0")
         self.requires("catch2/3.7.0")
         self.requires("fmt/11.1.3")
+        self.requires("tomlplusplus/3.4.0")
+        self.requires("magic_enum/0.9.7")
         
     def generate(self):
         tc = CMakeToolchain(self, generator='Ninja')

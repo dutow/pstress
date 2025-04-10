@@ -10,6 +10,8 @@ enable_testing()
 
 option(WITH_ASAN "Build with address sanitizer")
 option(WITH_UBSAN "Build with undefined behavior sanitizer")
+option(WITH_TSAN "Build with thread sanitizer")
+option(WITH_MSAN "Build with memory sanitizer")
 
 if (WITH_ASAN)
 	add_compile_options(-fsanitize=address)
@@ -51,11 +53,17 @@ find_package(reflectcpp REQUIRED)
 find_package(Git REQUIRED)
 find_package(Sol2 REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(tomlplusplus REQUIRED)
+find_package(magic_enum REQUIRED)
 
 INCLUDE(PQSetupCompiler)
 
 INCLUDE(PQCPack)
 INCLUDE(PQFindRevision)
 
+INCLUDE(LuaModules)
+
 add_subdirectory(libpstress)
 add_subdirectory(pstress)
+

@@ -195,13 +195,26 @@ void Postgres::add_hba(std::string const &host, std::string const &database,
 bool Postgres::createdb(std::string const &name) {
   return BackgroundProcess::runAndWait(
              logger, fmt::format("{}/bin/createdb", installDir.string()),
-             {name}) == 0;
+             {"-p", port, name}) == 0;
+}
+
+bool Postgres::createuser(std::string const &name, args_t args) {
+  args.push_back("-p");
+  args.push_back(port);
+  args.push_back(name);
+  return BackgroundProcess::runAndWait(
+             logger, fmt::format("{}/bin/createuser", installDir.string()),
+             args) == 0;
 }
 
 bool Postgres::dropdb(std::string const &name) {
   return BackgroundProcess::runAndWait(
              logger, fmt::format("{}/bin/dropdb", installDir.string()),
-             {name}) == 0;
+             {"-p", port, name}) == 0;
+}
+
+Postgres::~Postgres() {
+ stop(10);
 }
 
 } // namespace process

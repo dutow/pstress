@@ -1,9 +1,9 @@
-require("tde_helper")
+
+require 'common'
 
 -- produces various wal errors: incorrect magic number, incorrect resource provider,  record with incorrect prev-link, ...
 
-function init_replication_on_primary(worker)
-	worker:sql_connection():execute_query("CREATE USER repuser replication;")
+function setup_tables(worker)
 	-- comment out next line for non encrypted run
 	init_pg_tde_only_for_db(worker:sql_connection())
 	worker:create_random_tables(5)
@@ -16,18 +16,24 @@ function conn_settings(sqlconn)
 end
 
 function main()
-	installdir = getenv("PG_INST", "/home/dutow/work/pg17inst/")
-	primary_datadir = "datadir_pr"
-	replica_datadir = "datadir_repl"
+	confdir = getenv("TESTCONF", "config/")
+    conffile = toml.decodeFromFile(confdir .. "/pstress.toml")
+	pgconfig = PgConf.new(conffile["default"])
 
-	perf = "" -- "/usr/lib/linux-tools/6.8.0-57-generic/perf"
-	perfArgs = {} -- {"record", "-F", "1000", "-o", "/home/dutow/work/perf.data", "--"}
+	installdir = pgconfig:pgroot()
+    primary_port = pgconfig:nextPort()
+
+	primary_datadir = "datadir_pr"
+    if fs.is_directory(primary_datadir) then
+		warning("datadir already exist, deleting.")
+		fs.delete_directory(primary_datadir)
+	end
 
 	pg1 = initPostgresDatadir(installdir, primary_datadir)
 
 	pg1:add_config({
 		shared_preload_libraries = "pg_tde",
-		port = "5432",
+		port = tostring(primary_port),
 		listen_addresses = "'*'",
 		logging_collector = "on",
 		log_directory = "'logs'",
@@ -42,79 +48,34 @@ function main()
 		return
 	end
 
-	pg1:dropdb("pstress")
 	pg1:createdb("pstress")
+	pg1:createuser("pstress", {"-s"})
 
 	n1 = setup_node_pg({
 		host = "localhost",
-		port = 5432,
-		user = "dutow",
+		port = primary_port,
+		user = "pstress",
 		password = "",
 		database = "pstress",
 		on_connect = conn_settings,
 	})
 
-	n1:init(init_replication_on_primary)
-	pg1:restart(10, perf, perfArgs)
-
-	n1repl = setup_node_pg({
-		host = "localhost",
-		port = 5432,
-		user = "repuser",
-		password = "",
-		database = "pstress",
-		on_connect = conn_settings,
-	})
-
-	pg2 = initBasebackupFrom(installdir, replica_datadir, n1repl, "--checkpoint=fast", "-R", "-C", "--slot=slotname")
-
-	pg2:add_config({
-		shared_preload_libraries = "pg_tde",
-		port = "5433",
-		listen_addresses = "'*'",
-		logging_collector = "on",
-		log_directory = "'logs'",
-		log_filename = "'server.log'",
-		log_min_messages = "'info'",
-	})
-
-	if not pg2:start() then
-		error("Replica couldn't start")
-		return
-	end
-
-	info("Waiting for replica to become available")
-	pg2:wait_ready(200)
-	pg2:stop(10)
+	n1:init(setup_tables)
 
 	t1 = n1:initRandomWorkload({ run_seconds = 20, worker_count = 5 })
 	for workloadIdx = 1, 50 do
 		t1:run()
 
-		sleep(11000)
-
-		--pg2:restart(100)
-
-		--if not pg2:is_running() then
-		--	error("Replica can't start up after kill9")
-		--	return
-		--end
-
 		t1:wait_completion()
 
-		info("Waiting for replica to become available")
-		
 		pg1:kill9()
 		sleep(1000)
-		pg1:start(perf, perfArgs)
+		pg1:start()
 
 		pg1:wait_ready(200)
 
 		t1:reconnect_workers()
-
-		--pg2:wait_ready(200)
 	end
 
 	pg1:stop(10)
-	--pg2:stop(10)
 end

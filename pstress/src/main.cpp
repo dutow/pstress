@@ -54,6 +54,12 @@ inline auto init_random_workload(Node &self, sol::table const &table) {
       WorkloadParams{run_seconds, repeat_times, worker_count});
 }
 
+extern "C" {
+	LUALIB_API int luaopen_toml(lua_State * L);
+}
+
+struct Fs {};
+
 int main(int argc, char **argv) {
 
   spdlog::set_level(spdlog::level::debug);
@@ -66,14 +72,16 @@ int main(int argc, char **argv) {
   }
 
   sol::state lua;
-  lua.open_libraries(sol::lib::base, sol::lib::package);
+  lua.open_libraries();
+  lua.require("toml", luaopen_toml);
 
   const std::string original_package_path = lua["package"]["path"];
+  const std::string base_dir = boost::dll::program_location().parent_path().parent_path().string();
   lua["package"]["path"] =
       original_package_path + (!original_package_path.empty() ? ";" : "") +
       fmt::format(
-          "{}/scripts/?.lua",
-          boost::dll::program_location().parent_path().parent_path().string());
+          "{}/scripts/?.lua;{}/scripts_3p/?.lua",
+          base_dir, base_dir);
 
   lua["sleep"] = [](std::size_t milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
@@ -135,6 +143,7 @@ int main(int argc, char **argv) {
   postgres_usertype["kill9"] = &process::Postgres::kill9;
   postgres_usertype["createdb"] = &process::Postgres::createdb;
   postgres_usertype["dropdb"] = &process::Postgres::dropdb;
+  postgres_usertype["createuser"] = &process::Postgres::createuser;
   postgres_usertype["is_running"] = &process::Postgres::is_running;
   postgres_usertype["is_ready"] = &process::Postgres::is_ready;
   postgres_usertype["wait_ready"] = &process::Postgres::wait_ready;
@@ -170,16 +179,19 @@ int main(int argc, char **argv) {
 
   lua["setup_node_pg"] = setup_node_pg;
 
-  lua["fs"] = sol::table();
-
-  /*lua["fs"]["is_directory"] = [](std::string const &path) {
+  auto fs_usertype =
+      lua.new_usertype<Fs>("fs", sol::no_constructor);
+  fs_usertype["is_directory"] = [](std::string const &path) {
     return std::filesystem::is_directory(path);
   };
-  lua["fs"]["copy_directory"] = [](std::string const &from,
+  fs_usertype["copy_directory"] = [](std::string const &from,
                                    std::string const &to) {
     return std::filesystem::copy(from, to,
                                  std::filesystem::copy_options::recursive);
-  };*/
+  };
+  fs_usertype["delete_directory"] = [](std::string const &dir) {
+    return std::filesystem::remove_all(dir);
+  };
 
   auto script = lua.load_file(argv[1]);
 

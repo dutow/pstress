@@ -23,6 +23,8 @@ public:
            std::string const &dataDir, sql_variant::ServerParams const &from,
            args_t additionalParams);
 
+  ~Postgres();
+
   void add_config(params_t additionalConfig);
 
   void add_hba(std::string const &host, std::string const &database,
@@ -38,6 +40,8 @@ public:
   void kill9();
 
   bool createdb(std::string const &name);
+
+  bool createuser(std::string const &name, args_t args);
 
   bool dropdb(std::string const &name);
 
