@@ -20,6 +20,9 @@ function main()
 	primary_datadir = "datadir_pr"
 	replica_datadir = "datadir_repl"
 
+	perf = "" -- "/usr/lib/linux-tools/6.8.0-57-generic/perf"
+	perfArgs = {} -- {"record", "-F", "1000", "-o", "/home/dutow/work/perf.data", "--"}
+
 	pg1 = initPostgresDatadir(installdir, primary_datadir)
 
 	pg1:add_config({
@@ -52,7 +55,7 @@ function main()
 	})
 
 	n1:init(init_replication_on_primary)
-	pg1:restart(10)
+	pg1:restart(10, perf, perfArgs)
 
 	n1repl = setup_node_pg({
 		host = "localhost",
@@ -82,30 +85,36 @@ function main()
 
 	info("Waiting for replica to become available")
 	pg2:wait_ready(200)
+	pg2:stop(10)
 
 	t1 = n1:initRandomWorkload({ run_seconds = 20, worker_count = 5 })
 	for workloadIdx = 1, 50 do
 		t1:run()
 
-		sleep(33000)
+		sleep(11000)
 
-		pg2:restart(10)
+		--pg2:restart(100)
 
-		if not pg2:is_running() then
-			error("Replica can't start up after kill9")
-			return
-		end
+		--if not pg2:is_running() then
+		--	error("Replica can't start up after kill9")
+		--	return
+		--end
 
 		t1:wait_completion()
 
 		info("Waiting for replica to become available")
 		
-		pg1:restart(10)
+		pg1:kill9()
+		sleep(1000)
+		pg1:start(perf, perfArgs)
+
+		pg1:wait_ready(200)
 
 		t1:reconnect_workers()
 
-		pg2:wait_ready(200)
+		--pg2:wait_ready(200)
 	end
 
 	pg1:stop(10)
+	--pg2:stop(10)
 end

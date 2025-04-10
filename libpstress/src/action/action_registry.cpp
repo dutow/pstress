@@ -2,6 +2,7 @@
 #include <numeric>
 
 #include "action/action_registry.hpp"
+#include "action/dml.hpp"
 
 namespace {
 
@@ -35,6 +36,18 @@ ActionFactory insertSomeData{"insert_some_data",
                              },
                              1000};
 
+ActionFactory deleteSomeData{"delete_some_data",
+                             [](AllConfig const &config) {
+                               return std::make_unique<DeleteData>(config.dml);
+                             },
+                             1000};
+
+ActionFactory updateOneRow{"update_one_row",
+                             [](AllConfig const &config) {
+                               return std::make_unique<UpdateOneRow>(config.dml);
+                             },
+                             1000};
+
 ActionRegistry initializeDefaultRegisty() {
   ActionRegistry ar;
 
@@ -42,6 +55,8 @@ ActionRegistry initializeDefaultRegisty() {
   ar.insert(dropTable);
   ar.insert(alterTable);
   ar.insert(insertSomeData);
+  ar.insert(deleteSomeData);
+  ar.insert(updateOneRow);
 
   return ar;
 }

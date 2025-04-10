@@ -14,13 +14,14 @@ namespace process {
 class Postgres {
 public:
   using params_t = std::unordered_map<std::string, std::string>;
+  using args_t = std::vector<std::string>;
 
   Postgres(bool initDatadir, std::string const &logname,
            std::string const &installDir, std::string const &dataDir);
 
   Postgres(std::string const &logname, std::string const &installDir,
            std::string const &dataDir, sql_variant::ServerParams const &from,
-           std::vector<std::string> additionalParams);
+           args_t additionalParams);
 
   void add_config(params_t additionalConfig);
 
@@ -28,9 +29,9 @@ public:
                std::string const &user, std::string const &address,
                std::string const &method);
 
-  bool start();
+  bool start(std::string const& wrapper, args_t wrapperArgs);
 
-  bool restart(std::size_t graceful_wait_period);
+  bool restart(std::size_t graceful_wait_period, std::string const& wrapper, args_t wrapperArgs);
 
   void stop(std::size_t graceful_wait_period);
 

@@ -11,6 +11,7 @@ struct DdlConfig {
   std::size_t max_table_count = 10;
   std::size_t max_column_count = 20;
   std::size_t max_alter_clauses = 5;
+  std::vector<std::string> access_methods = { "heap", "tde_heap" };
 };
 
 class CreateTable : public Action {
@@ -39,7 +40,9 @@ private:
 enum class AlterSubcommand {
   // TODO: implement more
   addColumn = 1 << 0,
-  dropColumn = 1 << 1
+  dropColumn = 1 << 1,
+  changeColumn = 1 << 2,
+  changeAccessMethod = 1 << 3,
 };
 
 class AlterTable : public Action {

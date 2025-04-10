@@ -42,10 +42,9 @@ void InsertData::execute(Metadata &metaCtx, ps_random &rand,
 
   auto table = this->table;
 
-  // TODO : if no pointer given, select a random table
   if (metaCtx.size() == 0)
     return; // TODO: log
-  while (table == NULL) {
+  while (table == nullptr) {
     // select a random table from metadata
     std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size() - 1);
     table = metaCtx[idx];
@@ -89,3 +88,76 @@ void InsertData::execute(Metadata &metaCtx, ps_random &rand,
 
   connection->executeQuery(sql.str()).maybeThrow();
 }
+
+DeleteData::DeleteData(DmlConfig const &config)
+    : config(config) {}
+
+
+void DeleteData::execute(Metadata &metaCtx, ps_random &rand,
+                         sql_variant::LoggedSQL *connection) const {
+
+  if (metaCtx.size() == 0)
+    return; // TODO: log
+	    
+  table_cptr table = nullptr;
+
+  while (table == nullptr) {
+    // select a random table from metadata
+    std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size() - 1);
+    table = metaCtx[idx];
+  }
+
+  auto const& tableName = table->name;
+  // TODO: assumes we have a single column primary key as the first column. Currently always true.
+  auto const& pkName = table->columns[0].name;
+  // TODO: add other types of deletes, e.g. not based on primary key
+  auto const rows = rand.random_number(config.deleteMin, config.deleteMax);
+
+  connection->executeQuery(fmt::format("DELETE FROM {} WHERE {} IN (SELECT {} FROM {} ORDER BY random() LIMIT {});", tableName, pkName, pkName, tableName, rows)).maybeThrow();
+}
+
+UpdateOneRow::UpdateOneRow(DmlConfig const &config)
+    : config(config) {}
+
+
+void UpdateOneRow::execute(Metadata &metaCtx, ps_random &rand,
+                         sql_variant::LoggedSQL *connection) const {
+
+  if (metaCtx.size() == 0)
+    return; // TODO: log
+	    
+  table_cptr table = nullptr;
+
+  while (table == nullptr) {
+    // select a random table from metadata
+    std::size_t idx = rand.random_number<std::size_t>(0, metaCtx.size() - 1);
+    table = metaCtx[idx];
+  }
+
+  auto const& tableName = table->name;
+  // TODO: assumes we have a single column primary key as the first column. Currently always true.
+  auto const& pkName = table->columns[0].name;
+
+  std::stringstream sql;
+  sql << "UPDATE ";
+  sql << tableName;
+  sql << " SET ";
+
+  bool first = true;
+  for (auto const &f : table->columns) {
+    if (!f.auto_increment) {
+      if (!first)
+        sql << ", ";
+      sql << f.name;
+      sql << " = ";
+      sql << generate_value(f, rand);
+      first = false;
+    }
+  }
+
+  sql << fmt::format(" WHERE {} IN (SELECT {} FROM {} ORDER BY random() LIMIT 1)", pkName, pkName, tableName);
+  sql << ";";
+
+  connection->executeQuery(sql.str()).maybeThrow();
+}
+

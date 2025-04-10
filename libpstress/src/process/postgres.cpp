@@ -47,7 +47,7 @@ Postgres::Postgres(bool initDatadir, std::string const &logname,
   }
 }
 
-bool Postgres::start() {
+bool Postgres::start(std::string const &wrapper, args_t wrapperArgs) {
   spdlog::info("Starting postmaster for datadir {}", dataDir.string());
   if (postmaster != nullptr) {
     if (postmaster->running()) {
@@ -61,21 +61,27 @@ bool Postgres::start() {
     postmaster = nullptr;
   }
 
-  postmaster = BackgroundProcess::run(
-      logger, fmt::format("{}/bin/postgres", installDir.string()),
-      {"-D", dataDir.string()});
+  if (wrapper.empty()) {
+    postmaster = BackgroundProcess::run(
+        logger, fmt::format("{}/bin/postgres", installDir.string()),
+        {"-D", dataDir.string()});
+  } else {
+    wrapperArgs.push_back(fmt::format("{}/bin/postgres", installDir.string()));
+    wrapperArgs.push_back("-D");
+    wrapperArgs.push_back(dataDir.string());
 
-  spdlog::debug("Waiting for postmaster to start up");
+    postmaster = BackgroundProcess::run(logger, wrapper, wrapperArgs);
+  }
 
-  std::this_thread::sleep_for(
-      std::chrono::seconds(5)); // TODO: proper wait for startup handler
+  wait_ready(5);
 
   return postmaster->running();
 }
 
-bool Postgres::restart(std::size_t graceful_wait_period) {
+bool Postgres::restart(std::size_t graceful_wait_period,
+                       std::string const &wrapper, args_t wrapperArgs) {
   stop(graceful_wait_period);
-  return start();
+  return start(wrapper, wrapperArgs);
 }
 
 void Postgres::stop(std::size_t graceful_wait_period) {
@@ -115,7 +121,7 @@ void Postgres::kill9() {
 Postgres::Postgres(std::string const &logname, std::string const &installDir,
                    std::string const &dataDir,
                    sql_variant::ServerParams const &from,
-                   std::vector<std::string> additionalParams)
+                   args_t additionalParams)
     : installDir(installDir), dataDir(dataDir),
       logger(spdlog::basic_logger_st(fmt::format("pg-{}", logname),
                                      fmt::format("logs/pg-{}.log", logname))) {

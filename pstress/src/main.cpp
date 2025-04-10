@@ -129,9 +129,9 @@ int main(int argc, char **argv) {
 
   auto postgres_usertype =
       lua.new_usertype<process::Postgres>("Postgres", sol::no_constructor);
-  postgres_usertype["start"] = &process::Postgres::start;
+  postgres_usertype["start"] = sol::overload(&process::Postgres::start, [](process::Postgres& self) { return self.start("", {}); });
   postgres_usertype["stop"] = &process::Postgres::stop;
-  postgres_usertype["restart"] = &process::Postgres::restart;
+  postgres_usertype["restart"] = sol::overload(&process::Postgres::restart, [](process::Postgres& self, std::size_t wait_period) { return self.restart(wait_period, "", {}); });
   postgres_usertype["kill9"] = &process::Postgres::kill9;
   postgres_usertype["createdb"] = &process::Postgres::createdb;
   postgres_usertype["dropdb"] = &process::Postgres::dropdb;

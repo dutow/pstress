@@ -162,6 +162,8 @@ void AlterTable::execute(Metadata &metaCtx, ps_random &rand,
 
     std::vector<Column> newColumns;
 
+    bool changingAm = false;
+
     for (std::size_t idx = 0; idx < howManySubcommands; ++idx) {
       const auto cmdIndex =
           rand.random_number(std::size_t(0), commands.size() - 1);
@@ -184,6 +186,27 @@ void AlterTable::execute(Metadata &metaCtx, ps_random &rand,
             fmt::format("DROP COLUMN {}", table->columns[columnIndex].name));
         table->columns.erase(table->columns.begin() + columnIndex);
         break;
+      }
+      case AlterSubcommand::changeColumn: {
+        // very simple implementation, we only do numeric -> string
+        for (auto const &col : table->columns) {
+          if (col.type == metadata::ColumnType::INT ||
+              col.type == metadata::ColumnType::REAL) {
+            alterSubcommands.emplace_back(
+                fmt::format("ALTER COLUMN {} TYPE VARCHAR(32)", col.name));
+            break;
+          }
+        }
+        break;
+      }
+      case AlterSubcommand::changeAccessMethod: {
+        if (changingAm)
+          break;
+        const auto amIndex = rand.random_number(
+            std::size_t(0), config.access_methods.size() - 1);
+        alterSubcommands.emplace_back(fmt::format(
+            "SET ACCESS METHOD {}", config.access_methods[amIndex]));
+        changingAm = true;
       }
       }
     }
