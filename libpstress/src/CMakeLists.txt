@@ -11,7 +11,7 @@ set(LIBRARY_SOURCES
     metadata.cpp
     workload.cpp
     sql_variant/generic.cpp
-    sql_variant/mysql.cpp
+    #sql_variant/mysql.cpp
     sql_variant/postgresql.cpp
     sql_variant/sql_variant.cpp
 )
@@ -19,7 +19,7 @@ set(LIBRARY_SOURCES
 ADD_LIBRARY(libpstress STATIC ${LIBRARY_SOURCES})
 TARGET_INCLUDE_DIRECTORIES(libpstress PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include/")
 TARGET_LINK_LIBRARIES(libpstress 
-    libmysqlclient::libmysqlclient
+    #libmysqlclient::libmysqlclient
     libpqxx::pqxx
     CLI11::CLI11
     boost::boost

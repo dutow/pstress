@@ -44,7 +44,7 @@ if(LIBCPP)
 endif()
 
 find_package(Threads REQUIRED)
-find_package(libmysqlclient REQUIRED)
+#find_package(libmysqlclient REQUIRED)
 find_package(libpqxx REQUIRED)
 find_package(CLI11 REQUIRED)
 find_package(Catch2 REQUIRED)

@@ -22,7 +22,7 @@ class StormweaverRecipe(ConanFile):
     def requirements(self):
         self.requires("boost/1.86.0")
         self.requires("reflect-cpp/0.17.0")
-        self.requires("libmysqlclient/8.1.0")
+        #self.requires("libmysqlclient/8.1.0")
         self.requires("libpqxx/7.9.2")
         self.requires("cli11/2.4.2") # no need, remove later
         self.requires("nlohmann_json/3.11.3")
