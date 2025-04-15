@@ -41,6 +41,7 @@ jobs:
         uses: actions/checkout@master
         with:
           path: 'src/pstress'
+          submodules: recursive
 
       - name: Install/build dependencies
         run: |
