@@ -17,3 +17,5 @@ TARGET_LINK_LIBRARIES(toml-lua
     tomlplusplus::tomlplusplus
     magic_enum::magic_enum
 )
+
+TARGET_COMPILE_OPTIONS(toml-lua PRIVATE "-Wno-missing-declarations")
