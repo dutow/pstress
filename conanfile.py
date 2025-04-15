@@ -24,7 +24,6 @@ class StormweaverRecipe(ConanFile):
         self.requires("reflect-cpp/0.17.0")
         #self.requires("libmysqlclient/8.1.0")
         self.requires("libpqxx/7.9.2")
-        self.requires("cli11/2.4.2") # no need, remove later
         self.requires("nlohmann_json/3.11.3")
         self.requires("spdlog/1.15.1")
         self.requires("sol2/3.5.0")
@@ -38,6 +37,7 @@ class StormweaverRecipe(ConanFile):
         tc.cache_variables["WITH_ASAN"] = self.options.asan
         tc.cache_variables["WITH_UBSAN"] = self.options.ubsan
         tc.cache_variables["WITH_TSAN"] = self.options.tsan
+        tc.cache_variables["WITH_MSAN"] = self.options.msan
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()

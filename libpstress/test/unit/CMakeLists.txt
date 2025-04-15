@@ -2,7 +2,6 @@
 SET(UNITTEST_SOURCES
     main.cpp
     metadata_test.cpp
-    options_test.cpp
 )
 
 add_executable(pstress-unit ${UNITTEST_SOURCES})

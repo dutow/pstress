@@ -6,7 +6,6 @@ set(LIBRARY_SOURCES
     action/ddl.cpp
     action/dml.cpp
     process/postgres.cpp
-    options.cpp
     random.cpp
     metadata.cpp
     workload.cpp
